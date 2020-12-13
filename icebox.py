@@ -4,11 +4,12 @@ import traceback
 from common import IceboxError
 from commands import IceboxConfigCommand
 from commands import IceboxInitCommand
-# from commands import IceboxSyncCommand
 from commands import IceboxFreezeCommand
 from commands import IceboxThawCommand
+from commands import IceboxListCommand
+# from commands import IceboxSyncCommand
 
-## TODO: Need a dry run command
+## TODO: Need a dry run flag
 ## TODO: where are the test cases?
 
 parser = argparse.ArgumentParser(
@@ -30,8 +31,9 @@ These are the common icebox commands:
     thaw        Unarchive a given path and restore original content.
                 The path can be a file or folder. All files within a folder are recursively unarchived.
                 usage: thaw <path>
-    ls          List the contents of a remote icebox.
-                usage: ls <remote>
+    ls          List the contents of an icebox.
+                A remote icebox can be provided else the icebox in the current directory would be used.
+                usage: ls [remote]
     sync        Sync a directory with a remote icebox.
                 Local path should not be within an existing icebox.
                 usage: sync <remote> <path>
@@ -73,6 +75,12 @@ def thaw(args):
         return
     IceboxThawCommand(path=args[0]).run()
 
+def list(args):
+    if len(args) > 1:
+        print("At most one argument required - ls [remote]")
+        return
+    IceboxListCommand(remote=args[0]).run()
+
 def sync(args):
     if len(args) != 2:
         print("Exactly two arguments required - sync <remote> <path>")
@@ -85,12 +93,14 @@ def main():
         config(args.args)
     elif args.command == 'init':
         init(args.args)
-    elif args.command == 'sync':
-        sync(args.args)
     elif args.command == 'freeze':
         freeze(args.args)
     elif args.command == 'thaw':
         thaw(args.args)
+    elif args.command == 'ls':
+        list(args.args)
+    elif args.command == 'sync':
+        sync(args.args)
     else:
         print(f'Unknown command "{args.command}".')
         parser.print_help()
