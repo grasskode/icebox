@@ -1,7 +1,9 @@
-from typing import Optional
-from google.cloud import storage
 import hashlib
+import os
 from common import IceboxStorageError
+from common import utils
+from google.cloud import storage
+from typing import Optional
 
 
 class GoogleCloudStorageError(IceboxStorageError):
@@ -32,6 +34,47 @@ class GoogleCloudStorage:
             bucket.requester_pays = False
             bucket.patch()
         return bucket
+
+    def List(self, remote_path: str, recursive: bool = False):
+        """List the files in the given remote location."""
+        if not self._client:
+            raise GoogleCloudStorageError("Client not configured!")
+        if not self._bucket:
+            raise GoogleCloudStorageError("Bucket not configured!")
+        try:
+            all_blobs = []
+            dirs = []
+            # check if the remote_path is a file or directory
+            blob = self._bucket.get_blob(remote_path)
+            if blob:
+                # remote path is a file
+                all_blobs.append(blob)
+            else:
+                # remote_path is not a file or does not exist
+                # check if remote_path is a directory
+                if not remote_path.endswith(utils.REMOTE_PATH_DELIMITER):
+                    remote_path += utils.REMOTE_PATH_DELIMITER
+                delimiter = None if recursive else utils.REMOTE_PATH_DELIMITER
+                ## TODO we are not getting prefixes for some weird reason. Check this.
+                blobs = self._client.list_blobs(self._bucket, prefix=remote_path, delimiter=delimiter)
+                # print(blobs.prefixes)
+                for p in blobs.prefixes:
+                    split_path = p.split(utils.REMOTE_PATH_DELIMITER)
+                    dirs.append(utils.REMOTE_PATH_DELIMITER.join(split_path[1:]))
+                dirs.sort()
+                all_blobs = list(blobs)
+            files = []
+            for b in all_blobs:
+                split_path = b.name.split(utils.REMOTE_PATH_DELIMITER)
+                files.append({
+                    'name': utils.REMOTE_PATH_DELIMITER.join(split_path[1:]),
+                    'size': b.size,
+                    'updated': b.updated
+                })
+            return dirs, files
+        except Exception as e:
+            print(e)
+            raise GoogleCloudStorageError("Error listing remote path!")
 
     def Upload(self, source_path: str, dest_path: str):
         """Upload a file to the remote location."""

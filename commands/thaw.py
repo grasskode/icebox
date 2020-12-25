@@ -32,7 +32,8 @@ class IceboxThawCommand:
         utils.Finalize(self.icebox)
 
     def _get_files_to_thaw(self) -> List[str]:
-        return list(filter(lambda x: x.startswith(self.path), self.icebox.frozen_files))
+        frozen_files = [f"{self.icebox.path}{os.sep}{ff}" for ff in self.icebox.frozen_files]
+        return list(filter(lambda x: x.startswith(self.path), frozen_files))
 
     def _thaw_file(self, filepath: str):
         try:
@@ -47,4 +48,4 @@ class IceboxThawCommand:
             print(f"Unable to thaw {filepath}! Check stack trace for error.")
         else:
             # if successful, remove from icebox
-            self.icebox.frozen_files.remove(filepath)
+            self.icebox.frozen_files.remove(utils.GetRelativePath(filepath, self.icebox))

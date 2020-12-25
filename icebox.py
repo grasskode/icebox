@@ -1,22 +1,20 @@
 import argparse
 import textwrap
 import traceback
+import sys
 from common import IceboxError
 from commands import IceboxConfigCommand
 from commands import IceboxInitCommand
 from commands import IceboxFreezeCommand
 from commands import IceboxThawCommand
 from commands import IceboxListCommand
-# from commands import IceboxSyncCommand
+from commands import IceboxSyncCommand
 
 ## TODO: Need a dry run flag
 ## TODO: where are the test cases?
 
-parser = argparse.ArgumentParser(
-    prog='icebox',
-    usage='%(prog)s <command> [<args>]',
-    formatter_class=argparse.RawDescriptionHelpFormatter,
-    description=textwrap.dedent('''\
+usage='icebox <command> [<args>]'
+description=textwrap.dedent('''\
 These are the common icebox commands:
 
     config      Configure icebox.
@@ -37,9 +35,7 @@ These are the common icebox commands:
     sync        Sync a directory with a remote icebox.
                 Local path should not be within an existing icebox.
                 usage: sync <remote> <path>
-    '''))
-parser.add_argument('command')
-parser.add_argument('args', nargs='*')
+''')
 
 def config(args):
     if len(args) > 0:
@@ -67,43 +63,62 @@ def freeze(args):
     if len(args) != 1:
         print("Exactly one argument required - freeze <path>")
         return
-    IceboxFreezeCommand(path=args[0]).run()
+    try:
+        IceboxFreezeCommand(path=args[0]).run()
+    except IceboxError as e:
+        print(e)
+    except:
+        traceback.print_exc()
 
 def thaw(args):
     if len(args) != 1:
         print("Exactly one argument required - thaw <path>")
         return
-    IceboxThawCommand(path=args[0]).run()
+    try:
+        IceboxThawCommand(path=args[0]).run()
+    except IceboxError as e:
+        print(e)
+    except:
+        traceback.print_exc()
 
 def list(args):
-    if len(args) > 1:
-        print("At most one argument required - ls [remote]")
-        return
-    IceboxListCommand(remote=args[0]).run()
+    try:
+        IceboxListCommand(args=args).run()
+    except IceboxError as e:
+        print(e)
+    except:
+        traceback.print_exc()
 
 def sync(args):
-    if len(args) != 2:
-        print("Exactly two arguments required - sync <remote> <path>")
-        return
-    # IceboxSync(remote=args[0], path=args[1]).run()
+    try:
+        IceboxSyncCommand(args=args).run()
+    except IceboxError as e:
+        print(e)
+    except:
+        traceback.print_exc()
 
 def main():
-    args = parser.parse_args()
-    if args.command == 'config':
-        config(args.args)
-    elif args.command == 'init':
-        init(args.args)
-    elif args.command == 'freeze':
-        freeze(args.args)
-    elif args.command == 'thaw':
-        thaw(args.args)
-    elif args.command == 'ls':
-        list(args.args)
-    elif args.command == 'sync':
-        sync(args.args)
+    command = None if len(sys.argv) == 1 else sys.argv[1]
+    args = [] if len(sys.argv) < 3 else sys.argv[2:]
+    if not command or command in ['help', '-h']:
+        print(usage)
+        print(description)
+    elif command == 'config':
+        config(args)
+    elif command == 'init':
+        init(args)
+    elif command == 'freeze':
+        freeze(args)
+    elif command == 'thaw':
+        thaw(args)
+    elif command == 'ls':
+        list(args)
+    elif command == 'sync':
+        sync(args)
     else:
-        print(f'Unknown command "{args.command}".')
-        parser.print_help()
+        print(f'Unknown command "{command}".')
+        print(usage)
+        print(description)
 
 if __name__ == '__main__':
     main()

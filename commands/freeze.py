@@ -50,6 +50,6 @@ class IceboxFreezeCommand:
             print(f"Unable to freeze {filepath}! Check stack trace for error.")
         else:
             # if successful, add to icebox
-            self.icebox.frozen_files.append(filepath)
+            self.icebox.frozen_files.append(utils.GetRelativePath(filepath, self.icebox))
             # replace local with a metadata / preview file
             utils.ReplaceFile(filepath)

@@ -13,11 +13,14 @@ from storage import GoogleCloudStorageError
 
 CONFIG_FILE_NAME: str = ".iceboxcfg"
 ICEBOX_FILE_NAME: str = ".icebox"
+REMOTE_PATH_DELIMITER: str = "/"
 
 def _icebox_file_path(icebox_path: str) -> str:
     return f"{icebox_path}{os.sep}{ICEBOX_FILE_NAME}"
 
 def ResolvePath(path: str) -> str:
+    if not path:
+        return None
     p = Path(path).expanduser().resolve()
     return str(p)
 
@@ -44,6 +47,29 @@ def GetStorage():
         return GoogleCloudStorage(icebox_config.storage_options['credentials'], icebox_config.storage_options['default_location'], icebox_config.storage_options['bucket'])
     else:
         raise IceboxError(f"Invalid storage choice '{icebox_config.storage_choice}'!")
+
+def SyncIcebox(remote: str, local: str, storage = None):
+    if not storage:
+        storage = GetStorage()
+    # check if remote points to a valid icebox
+    _, files = storage.List(remote)
+    file_names = [file['name'] for file in files]
+    if ICEBOX_FILE_NAME not in file_names:
+        raise IceboxError(f"Invalid remote path '{remote}'.")
+    # local points to a non initialized folder\
+    # download remote ICEBOX_FILE_NAME to local
+    remote_path = f"{remote}{REMOTE_PATH_DELIMITER}{ICEBOX_FILE_NAME}"
+    icebox_path = _icebox_file_path(local)
+    storage.Download(remote_path, icebox_path)
+    icebox = FindIcebox(local)
+    for f in icebox.frozen_files:
+        # create a local replica for all frozen files
+        filepath = f"{icebox.path}{os.sep}{f}"
+        dirpath = os.path.dirname(filepath)
+        print(filepath, dirpath)
+        if not os.path.exists(dirpath):
+            os.makedirs(dirpath)
+        ReplaceFile(filepath)
 
 def CreateIcebox(path: str):
     icebox_path = _icebox_file_path(path)
@@ -81,8 +107,11 @@ def FindIcebox(path: str) -> Icebox:
 def Finalize(icebox: Icebox):
     if not icebox:
         raise IceboxError("Cannot finalize without icebox!")
-    with open(_icebox_file_path(icebox.path), 'w') as f:
+    icebox_path = _icebox_file_path(icebox.path)
+    with open(icebox_path, 'w') as f:
         f.write(json.dumps(icebox.to_dict()))
+    # upload icebox to remote
+    UploadFile(icebox, icebox_path)
 
 def ReplaceFile(filepath: str):
     """Replace the given filepath with a preview or metadata file."""
@@ -98,18 +127,18 @@ def GetRelativePath(filepath: str, icebox: Icebox) -> Optional[str]:
     if relpath.startswith('..'):
         return None
     else:
-        return relpath
+        return relpath.replace(os.sep, REMOTE_PATH_DELIMITER)
 
 def UploadFile(icebox: Icebox, filepath: str, storage = None):
     if not storage:
         storage = GetStorage()
     relative_path = GetRelativePath(filepath, icebox)
-    dest_path = f"{icebox.id}/{relative_path}"
+    dest_path = f"{icebox.id}{REMOTE_PATH_DELIMITER}{relative_path}"
     storage.Upload(filepath, dest_path)
 
 def DownloadFile(icebox: Icebox, filepath: str, storage = None):
     if not storage:
         storage = GetStorage()
     relative_path = GetRelativePath(filepath, icebox)
-    remote_path = f"{icebox.id}/{relative_path}"
+    remote_path = f"{icebox.id}{REMOTE_PATH_DELIMITER}{relative_path}"
     storage.Download(remote_path, filepath)
