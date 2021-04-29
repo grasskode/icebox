@@ -3,5 +3,5 @@
 ## Pypi dependencies
 
 ```
-pip install google-cloud-storage coolname
+pip install google-cloud-storage coolname pydantic python-dotenv
 ```
