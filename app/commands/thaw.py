@@ -18,15 +18,14 @@ class IceboxThawCommand:
         self.storage: IceboxStorage = utils.GetStorage()
 
     def run(self):
-        # path should exist locally or should be present in the icebox
-        if (not (self.path and self.path.exists())
-                and (self.icebox
-                     and not utils.ExistsInIcebox(self.path, self.icebox))):
-            raise IceboxError("Invalid path!")
         # check if path lies in an icebox path
         if not self.icebox:
             raise IceboxError(
                 f"'{self.path}' is not in an icebox! Please initialize first.")
+        # path should exist locally or should be present in the icebox
+        if (not (self.path and self.path.exists())
+                and not utils.ExistsInIcebox(self.path, self.icebox)):
+            raise IceboxError("Invalid path!")
 
         print(f"Thawing '{self.path}'...")
         # create list of files in the path that need to be thawed
@@ -47,33 +46,46 @@ class IceboxThawCommand:
     def __get_files_to_thaw(self) -> typing.List[str]:
         relpath = utils.GetRelativeRemotePath(str(self.path), self.icebox.path)
         if relpath == '.':
-            # thaw entire icebox
+            # Thaw entire icebox.
             filelist = self.icebox.frozen_files
         else:
+            # Thaw the files that are children to the given path.
             filelist = [
                 f for f in self.icebox.frozen_files
                 if f == relpath or f.startswith(relpath + os.sep)]
 
-        # only retain the files that are not overwritten
+        # Only retain the files that are not overwritten locally.
         filtered_filelist = []
         for f in filelist:
             localpath = utils.GetAbsoluteLocalPath(f, self.icebox.path)
             if not localpath.exists() or localpath.stat().st_size == 0:
+                # Include files that are either not present locally or do not
+                # have content.
                 filtered_filelist.append(f)
             elif localpath.exists():
-                # Skip the files that are non zero size. These were overwritten
+                # Skip the files that are non-zero size. These were overwritten
                 # locally.
                 print(f"Skipping locally overwritten file at {str(f)}.")
         return filtered_filelist
 
     def __thaw_file(self, relpath: str):
         try:
-            # download file
-            utils.DownloadFile(self.icebox, relpath, storage=self.storage)
+            self.__download_file(relpath)
         except IceboxStorageError as e:
-            # print error if download was unsuccessful
+            # Print error if download was unsuccessful.
             print(e)
             print(f"Unable to thaw {relpath}! Check stack trace for error.")
         else:
-            # if successful, remove from icebox
+            # If successful, remove file's entry from icebox.
             self.icebox.frozen_files.remove(relpath)
+
+    def __download_file(self, relpath: str):
+        """Wrapper function to download file.
+
+        Enables testing by mocking.
+
+        Raises
+            IceboxStorageError
+        """
+        # download file
+        utils.DownloadFile(self.icebox, relpath, storage=self.storage)

@@ -1,5 +1,6 @@
 import unittest
 
+from unittest.mock import patch
 from dotenv import load_dotenv
 from pathlib import Path
 load_dotenv(dotenv_path=(Path('.') / '.env_test'))
@@ -70,10 +71,6 @@ class FreezeCommandTest(unittest.TestCase):
             self.assertEqual(f.stat().st_size, 0)
 
     def test_freeze_subdirectory(self):
-        # freeze should not work if the directory is not initialized
-        with self.assertRaises(common.IceboxError):
-            commands.IceboxFreezeCommand(str(self.test_subfolder)).run()
-
         # freeze should work on a subdirectory of an initialized directory
         # * files should have a size of 0 after freezing
         # * files not in subfolder but inside initialize folder should be
@@ -90,10 +87,6 @@ class FreezeCommandTest(unittest.TestCase):
             self.test_folder_file.stat().st_size, test_folder_file_size)
 
     def test_freeze_file(self):
-        # freeze should not work if a parent directory is not initialized
-        with self.assertRaises(common.IceboxError):
-            commands.IceboxFreezeCommand(str(self.test_subfolder_file)).run()
-
         # freeze should work on a single file in an initialized directory
         # * file should have a size of 0 after freezing
         # * other files in subfolder should be unaffected
@@ -121,3 +114,12 @@ class FreezeCommandTest(unittest.TestCase):
         commands.IceboxFreezeCommand(str(self.test_subfolder_file)).run()
         self.assertTrue(self.test_subfolder_file.exists())
         self.assertEqual(self.test_subfolder_file.stat().st_size, 0)
+
+    @patch(
+        'app.commands.IceboxFreezeCommand._IceboxFreezeCommand__upload_file')
+    def test_freeze_upload_error(self, mocked_function):
+        mocked_function.side_effect = common.IceboxStorageError()
+        # freeze should not work when an error is thrown
+        commands.IceboxInitCommand(str(self.test_folder)).run()
+        commands.IceboxFreezeCommand(str(self.test_folder_file)).run()
+        self.assertGreater(self.test_folder_file.stat().st_size, 0)

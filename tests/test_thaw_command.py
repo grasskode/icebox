@@ -1,5 +1,6 @@
 import unittest
 
+from unittest.mock import patch
 from dotenv import load_dotenv
 from pathlib import Path
 load_dotenv(dotenv_path=(Path('.') / '.env_test'))
@@ -152,3 +153,13 @@ class ThawCommandTest(unittest.TestCase):
         commands.IceboxThawCommand(str(self.test_subfolder_file)).run()
         self.assertEqual(
             self.test_subfolder_file.stat().st_size, overwritten_file_size)
+
+    @patch(
+        'app.commands.IceboxThawCommand._IceboxThawCommand__download_file')
+    def test_thaw_download_error(self, mocked_function):
+        mocked_function.side_effect = common.IceboxStorageError()
+        commands.IceboxInitCommand(str(self.test_folder)).run()
+        commands.IceboxFreezeCommand(str(self.test_folder_file)).run()
+        # thaw should not work when an error is thrown
+        commands.IceboxThawCommand(str(self.test_folder_file)).run()
+        self.assertEqual(self.test_folder_file.stat().st_size, 0)

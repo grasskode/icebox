@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pydantic
 import typing
 
@@ -7,6 +9,13 @@ from app.storage.icebox_storage import IceboxStorageType
 class IceboxConfig(pydantic.BaseModel):
     storage_choice: IceboxStorageType = None
     storage_options: typing.Dict[str, str] = None
+
+
+class IceboxRemoteFile(pydantic.BaseModel):
+    name: str
+    size: int = 0
+    updated: datetime = 0
+    is_dir: bool = False
 
 
 class Icebox:

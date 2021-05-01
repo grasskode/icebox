@@ -68,8 +68,7 @@ class IceboxFreezeCommand:
 
     def __freeze_file(self, filepath: str):
         try:
-            # upload file
-            utils.UploadFile(self.icebox, filepath, storage=self.storage)
+            self.__upload_file(filepath)
         except IceboxStorageError as e:
             # print error if upload was unsuccessful
             print(e)
@@ -80,3 +79,14 @@ class IceboxFreezeCommand:
                 utils.GetRelativeRemotePath(filepath, self.icebox.path))
             # replace local with a metadata / preview file
             utils.ReplaceFile(filepath)
+
+    def __upload_file(self, filepath: str):
+        """Wrapper function to upload file.
+
+        Enables testing by mocking.
+
+        Raises
+            IceboxStorageError
+        """
+        # upload file
+        utils.UploadFile(self.icebox, filepath, storage=self.storage)

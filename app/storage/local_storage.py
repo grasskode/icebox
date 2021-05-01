@@ -1,11 +1,15 @@
+import os
 import shutil
 import typing
 
+from datetime import datetime
 from pathlib import Path
 
 from .icebox_storage import IceboxStorage
+from app import config
+from app.common import Icebox
+from app.common import IceboxRemoteFile
 from app.common import IceboxStorageError
-from app.common import utils
 
 
 class LocalStorage(IceboxStorage):
@@ -18,33 +22,41 @@ class LocalStorage(IceboxStorage):
         self.storage_path = Path(path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
-    def List(
-            self, remote_path: str, recursive: bool = False
-            ) -> typing.Tuple[typing.List[str], typing.List[str]]:
-        """List the objects in the given remote path.
+    def List(self, icebox: Icebox, remote_path: str,
+             recursive: bool = False) -> typing.Tuple[
+             typing.List[IceboxRemoteFile], typing.List[IceboxRemoteFile]]:
+        """List the objects in the given icebox withthe given remote path.
 
-        Returns a tuple of list of directories and list of files.
+        Returns a tuple of directories and files.
 
         Overrides the default unimplemented method in IceboxStorage.
         """
         dirs, files = [], []
-        path = self.storage_path / Path(remote_path)
+        path = self.storage_path / Path(icebox.id) / Path(remote_path)
 
         # get all the immediate children of the remote path
         for child in path.iterdir():
-            child_path = utils.GetRelativeRemotePath(
-                str(child), str(self.storage_path))
+            if child.name == config.ICEBOX_FILE_NAME:
+                continue
+            child_path = os.path.relpath(
+                str(child), str(self.storage_path / Path(icebox.id)))
             if child.is_dir():
-                dirs.append(child_path)
+                dirs.append(
+                    IceboxRemoteFile(name=child_path, is_dir=True))
             else:
-                files.append(child_path)
-
+                updated = datetime.fromtimestamp(child.stat().st_mtime)
+                files.append(
+                    IceboxRemoteFile(
+                        name=child_path, size=child.stat().st_size,
+                        updated=updated))
+        dirs.sort(key=lambda x: x.name)
+        files.sort(key=lambda x: x.name)
         # if recursive and directories were found, list all of them and add
         # result to the return set
         if dirs and recursive:
             dirs_to_recurse = list(dirs)
             for dir in dirs_to_recurse:
-                _dirs, _files = self.List(dir, recursive=True)
+                _dirs, _files = self.List(icebox, dir.name, recursive=True)
                 dirs.extend(_dirs)
                 files.extend(_files)
         return dirs, files

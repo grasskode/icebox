@@ -1,3 +1,5 @@
+import argparse
+import os
 import sys
 import textwrap
 import traceback
@@ -92,8 +94,17 @@ def thaw(args):
 
 
 def list(args):
+    parser = argparse.ArgumentParser(
+        description='Parse arguments for list command.')
+    parser.add_argument('remote', type=str,
+                        help='remote path to list.', default=None)
+    parser.add_argument('-r', dest='recursive', action='store_true',
+                        help='list recursively.')
+    parsed_args = parser.parse_args(args)
     try:
-        commands.IceboxListCommand(args=args).run()
+        commands.IceboxListCommand(
+            parent=os.getcwd(), remote=parsed_args.remote,
+            recursive=parsed_args.recursive).run()
     except common.IceboxError as e:
         print(e)
     except Exception:
