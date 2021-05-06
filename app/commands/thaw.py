@@ -4,10 +4,10 @@ import typing
 
 from pathlib import Path
 
-from app.common import Icebox
 from app.common import IceboxError
 from app.common import IceboxStorageError
 from app.common import utils
+from app.elements.icebox import Icebox
 from app.storage.icebox_storage import IceboxStorage
 
 
@@ -27,7 +27,10 @@ class IceboxThawCommand:
                 and not utils.ExistsInIcebox(self.path, self.icebox)):
             raise IceboxError("Invalid path!")
 
+        # good to go
+        self.icebox = utils.Synchronize(self.icebox)
         print(f"Thawing '{self.path}'...")
+
         # create list of files in the path that need to be thawed
         filelist = self.__get_files_to_thaw()
         # TODO: temporary limit on maximum number of files to thaw at a time.

@@ -2,8 +2,8 @@ from coolname import generate_slug
 from typing import Dict
 
 from app.common import utils
-from app.common import IceboxConfig
 from app.common import IceboxError
+from app.elements.icebox_config import IceboxConfig
 from app.storage.google_cloud_storage import GoogleCloudStorage
 from app.storage.icebox_storage import IceboxStorageType
 

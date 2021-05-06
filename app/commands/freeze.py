@@ -4,10 +4,10 @@ import typing
 from pathlib import Path
 
 from app import config
-from app.common import Icebox
 from app.common import IceboxError
 from app.common import IceboxStorageError
 from app.common import utils
+from app.elements.icebox import Icebox
 from app.storage.icebox_storage import IceboxStorage
 
 
@@ -24,6 +24,9 @@ class IceboxFreezeCommand:
         if not self.icebox:
             raise IceboxError(
                 f"'{self.path}' is not in an icebox! Please initialize first.")
+
+        # good to go
+        self.icebox = utils.Synchronize(self.icebox)
         print(f"Freezing '{self.path}'...")
 
         # create list of files in the path that need to be frozen

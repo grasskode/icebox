@@ -1,6 +1,7 @@
 from .config import IceboxConfigCommand
+# from .clone import IceboxCloneCommand
 from .freeze import IceboxFreezeCommand
 from .init import IceboxInitCommand
-from .thaw import IceboxThawCommand
 from .list import IceboxListCommand
-# from .sync import IceboxSyncCommand
+from .list_all import IceboxListAllCommand
+from .thaw import IceboxThawCommand

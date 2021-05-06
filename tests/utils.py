@@ -22,4 +22,4 @@ class TestUtils(object):
         return file_path
 
     def DeleteFolderAndContents(self, path: Path):
-        shutil.rmtree(path)
+        shutil.rmtree(path, ignore_errors=True)

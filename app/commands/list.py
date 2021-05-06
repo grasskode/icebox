@@ -4,10 +4,10 @@ from datetime import datetime
 from pathlib import Path
 
 from app import config
-from app.common import Icebox
 from app.common import IceboxError
 from app.common import IceboxStorageError
 from app.common import utils
+from app.elements.icebox import Icebox
 from app.storage.icebox_storage import IceboxStorage
 
 
@@ -31,7 +31,10 @@ class IceboxListCommand:
                 and not utils.ExistsInIcebox(self.path, self.icebox)):
             raise IceboxError("Invalid path!")
 
+        # good to go
+        self.icebox = utils.Synchronize(self.icebox)
         print(f"Listing '{self.remote}'...")
+
         try:
             relative_path = utils.GetRelativeRemotePath(
                 self.path, self.icebox.path)

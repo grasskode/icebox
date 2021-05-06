@@ -6,10 +6,12 @@ from datetime import datetime
 from pathlib import Path
 
 from .icebox_storage import IceboxStorage
+
 from app import config
-from app.common import Icebox
-from app.common import IceboxRemoteFile
 from app.common import IceboxStorageError
+from app.common import utils
+from app.elements.icebox import Icebox
+from app.elements.icebox_remote_file import IceboxRemoteFile
 
 
 class LocalStorage(IceboxStorage):
@@ -21,6 +23,24 @@ class LocalStorage(IceboxStorage):
     def __init__(self, path: str):
         self.storage_path = Path(path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
+
+    def ListAll(self) -> typing.List[str]:
+        """List the remote iceboxes.
+
+        Returns a list remote icebox IDs.
+
+        Overrides the default unimplemented method in IceboxStorage.
+
+        Raises
+            IceboxStorageError
+        """
+        iceboxes = []
+        for child in self.storage_path.iterdir():
+            # check if child is an icebox
+            icebox = utils.ReadIcebox(child)
+            if icebox:
+                iceboxes.append(icebox)
+        return sorted(iceboxes, key=lambda x: x.id)
 
     def List(self, icebox: Icebox, remote_path: str,
              recursive: bool = False) -> typing.Tuple[
@@ -61,11 +81,11 @@ class LocalStorage(IceboxStorage):
                 files.extend(_files)
         return dirs, files
 
-    def Upload(self, source_path: str, destination_path: str):
-        """Upload the source_path to the destination_path.
+    def Upload(self, source_path: str, relative_destination_path: str):
+        """Upload the source_path to the relative_destination_path.
 
-        The source_path should be local and the destination_path should be
-        remote. The source_path should point to a file locally.
+        The source_path should be local and the relative_destination_path
+        should be remote. The source_path should point to a file locally.
 
         Overrides the default unimplemented method in IceboxStorage.
 
@@ -73,7 +93,7 @@ class LocalStorage(IceboxStorage):
             IceboxStorageError
         """
         _source_path = Path(source_path)
-        _destination_path = self.storage_path / Path(destination_path)
+        _destination_path = self.storage_path / Path(relative_destination_path)
 
         # check if source_path is a file
         if not _source_path.is_file():
@@ -86,16 +106,19 @@ class LocalStorage(IceboxStorage):
         # copy contents
         shutil.copyfile(_source_path, _destination_path)
 
-    def Download(self, source_path: str, destination_path: str):
-        """Download the source_path to the destination_path.
+    def Download(self, relative_source_path: str, destination_path: str):
+        """Download the relative_source_path to the destination_path.
 
         The source path should be remote and the destination path should be
-        local. Destination path should not exist or should be a file.
+        local. Destination path should not exist or should be a file which will
+        be **overwritten**.
+
+        Overrides the default unimplemented method in IceboxStorage.
 
         Raises
             IceboxStorageError
         """
-        _source_path = self.storage_path / Path(source_path)
+        _source_path = self.storage_path / Path(relative_source_path)
         _destination_path = Path(destination_path)
 
         # check if destination_path is not a directory
@@ -104,11 +127,14 @@ class LocalStorage(IceboxStorage):
             _destination_path.touch(exist_ok=True)
         if _destination_path.is_dir():
             raise IceboxStorageError(
-                "Destination should not exist or be a file.")
+                "Destination should not exist or should be a file.")
 
         # copy contents
         shutil.copyfile(_source_path, _destination_path)
 
     def Destroy(self):
-        """Destroy the storage."""
+        """Destroy the storage.
+
+        Utility function.
+        """
         shutil.rmtree(self.storage_path)

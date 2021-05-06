@@ -1,13 +1,16 @@
 import json
 import os
+import shutil
+import typing
+
 from pathlib import Path
 from typing import Optional
 
-from .icebox_elements import Icebox
-from .icebox_elements import IceboxConfig
 from .exceptions import IceboxError
 
 from app import config
+from app.elements.icebox import Icebox, LocalIcebox
+from app.elements.icebox_config import IceboxConfig
 from app.storage import google_cloud_storage as gcs
 from app.storage import local_storage
 
@@ -91,26 +94,34 @@ def SyncIcebox(remote: str, local: str, storage=None):
         ReplaceFile(filepath)
 
 
-def FindIcebox(path: Path) -> Icebox:
+def FindIcebox(path: Path) -> typing.Optional[LocalIcebox]:
     if not path:
         return None
-    icebox_path = None
     while True:
-        possible_icebox_path = ResolveIcebox(path)
-        if possible_icebox_path.is_file():
-            icebox_path = possible_icebox_path
-            break
+        # try to read icebox in current path and return if one was found
+        icebox = ReadIcebox(path)
+        if icebox:
+            return LocalIcebox(path=str(path), **(icebox.dict()))
         elif path.parent == path:
-            break
+            # icebox does not exist if we have reached the end of
+            # upward iteration.
+            return None
         else:
+            # try looking for icebox in the parent
             path = path.parent
-    if not icebox_path:
+
+
+def ReadIcebox(path: Path) -> typing.Optional[Icebox]:
+    if not path:
         return None
-    with open(icebox_path, 'r') as f:
-        return Icebox.from_dict(str(path), json.loads(f.read()))
+    icebox_path = ResolveIcebox(path)
+    if icebox_path.is_file():
+        with open(icebox_path, 'r') as f:
+            return Icebox(**json.loads(f.read()))
+    return None
 
 
-def ExistsInIcebox(path: Path, icebox: Icebox) -> bool:
+def ExistsInIcebox(path: Path, icebox: LocalIcebox) -> bool:
     relpath = GetRelativeRemotePath(str(path), icebox.path)
     if relpath:
         for f in icebox.frozen_files:
@@ -119,14 +130,44 @@ def ExistsInIcebox(path: Path, icebox: Icebox) -> bool:
     return False
 
 
-def Finalize(icebox: Icebox):
+def Finalize(icebox: LocalIcebox):
     if not icebox:
         raise IceboxError("Cannot finalize without icebox!")
     icebox_path = ResolveIcebox(icebox.path)
     with open(icebox_path, 'w') as f:
-        f.write(json.dumps(icebox.to_dict()))
+        data = Icebox(**icebox.dict()).dict()
+        f.write(json.dumps(data))
     # upload icebox to remote
     UploadFile(icebox, icebox_path)
+
+
+def Synchronize(icebox: LocalIcebox) -> LocalIcebox:
+    if not icebox:
+        raise IceboxError("Cannot synchronize without icebox!")
+    temp_file_name = f"{config.ICEBOX_FILE_NAME}_temp"
+    DownloadFile(
+        icebox, config.ICEBOX_FILE_NAME,
+        relative_destination_path=temp_file_name)
+    temp_file_path = Path(icebox.path) / Path(temp_file_name)
+    try:
+        with open(temp_file_path, 'r') as f:
+            remote_icebox = Icebox(**json.loads(f.read()))
+        local_icebox = LocalIcebox(
+            path=icebox.path, **remote_icebox.dict())
+        if not local_icebox.is_valid():
+            raise IceboxError("Invalid icebox found in remote location!")
+    except Exception:
+        # delete the temporary file
+        temp_file_path.unlink(missing_ok=True)
+        raise IceboxError(
+            "Error reading remote icebox. Contents might be invalid.")
+    else:
+        shutil.copyfile(
+            str(temp_file_path),
+            f"{icebox.path}{os.sep}{config.ICEBOX_FILE_NAME}")
+    # delete the temporary file
+    temp_file_path.unlink(missing_ok=True)
+    return local_icebox
 
 
 def ReplaceFile(filepath: str):
@@ -152,7 +193,7 @@ def GetAbsoluteLocalPath(relpath: str, parentpath: str) -> Path:
     return Path(parentpath) / Path(relpath)
 
 
-def UploadFile(icebox: Icebox, filepath: str, storage=None):
+def UploadFile(icebox: LocalIcebox, filepath: str, storage=None):
     if not storage:
         storage = GetStorage()
     relative_path = GetRelativeRemotePath(filepath, icebox.path)
@@ -160,9 +201,14 @@ def UploadFile(icebox: Icebox, filepath: str, storage=None):
     storage.Upload(filepath, dest_path)
 
 
-def DownloadFile(icebox: Icebox, relative_path: str, storage=None):
+def DownloadFile(
+        icebox: LocalIcebox, relative_path: str,
+        relative_destination_path: str = None, storage=None):
     if not storage:
         storage = GetStorage()
-    filepath = GetAbsoluteLocalPath(relative_path, icebox.path)
+    filepath = GetAbsoluteLocalPath(
+        relative_path if not relative_destination_path
+        else relative_destination_path,
+        icebox.path)
     remote_path = f"{icebox.id}{config.REMOTE_PATH_DELIMITER}{relative_path}"
     storage.Download(remote_path, filepath)

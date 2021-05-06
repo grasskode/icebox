@@ -9,7 +9,6 @@ from app import commands
 
 
 # TODO: Need a dry run flag
-# TODO: where are the test cases?
 
 
 USAGE = 'icebox <command> [<args>]'
@@ -22,6 +21,9 @@ These are the common icebox commands:
     init        Initialize a directory as an icebox.
                 The path must be a folder.
                 usage: init <path>
+    clone       Clone an icebox from an existing one.
+                The path must not exist.
+                usage: init <icebox> <path>
     freeze      Archive a given path.
                 The path can be a file or folder. All files within a folder are
                 recursively archived.
@@ -31,12 +33,11 @@ These are the common icebox commands:
                 recursively unarchived.
                 usage: thaw <path>
     ls          List the contents of an icebox.
-                A remote icebox can be provided else the icebox in the current
-                directory would be used.
+                The command can be run from an initialized icebox folder.
+                Options:
+                    -r : Lists files recursively.
+                    -a : Lists all remote iceboxes.
                 usage: ls [remote]
-    sync        Sync a directory with a remote icebox.
-                Local path should not be within an existing icebox.
-                usage: sync <remote> <path>
 ''')
 
 
@@ -63,6 +64,18 @@ def init(args):
         return
     try:
         commands.IceboxInitCommand(path=args[0]).run()
+    except common.IceboxError as e:
+        print(e)
+    except Exception:
+        traceback.print_exc()
+
+
+def clone(args):
+    if len(args) != 2:
+        print("Exactly two argument required - clone <icebox> <path>")
+        return
+    try:
+        commands.IceboxCloneCommand(icebox=args[0], path=args[1]).run()
     except common.IceboxError as e:
         print(e)
     except Exception:
@@ -97,23 +110,19 @@ def list(args):
     parser = argparse.ArgumentParser(
         description='Parse arguments for list command.')
     parser.add_argument('remote', type=str,
-                        help='remote path to list.', default=None)
+                        help='remote path to list.', default='.')
     parser.add_argument('-r', dest='recursive', action='store_true',
-                        help='list recursively.')
+                        help='List files recursively.')
+    parser.add_argument('-a', dest='all', action='store_true',
+                        help='List all remote iceboxes.')
     parsed_args = parser.parse_args(args)
     try:
-        commands.IceboxListCommand(
-            parent=os.getcwd(), remote=parsed_args.remote,
-            recursive=parsed_args.recursive).run()
-    except common.IceboxError as e:
-        print(e)
-    except Exception:
-        traceback.print_exc()
-
-
-def sync(args):
-    try:
-        commands.IceboxSyncCommand(args=args).run()
+        if parsed_args.all:
+            commands.IceboxListAllCommand().run()
+        else:
+            commands.IceboxListCommand(
+                parent=os.getcwd(), remote=parsed_args.remote,
+                recursive=parsed_args.recursive).run()
     except common.IceboxError as e:
         print(e)
     except Exception:
@@ -129,14 +138,14 @@ def main():
         config(args)
     elif command == 'init':
         init(args)
+    elif command == 'clone':
+        clone(args)
     elif command == 'freeze':
         freeze(args)
     elif command == 'thaw':
         thaw(args)
     elif command == 'ls':
         list(args)
-    elif command == 'sync':
-        sync(args)
     else:
         print(f'Unknown command "{command}".')
         print_usage()
