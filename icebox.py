@@ -8,9 +8,6 @@ from app import common
 from app import commands
 
 
-# TODO: Need a dry run flag
-
-
 USAGE = 'icebox <command> [<args>]'
 DESCRIPTION = textwrap.dedent('''\
 These are the common icebox commands:

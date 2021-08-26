@@ -49,10 +49,6 @@ class FreezeCommandTest(unittest.TestCase):
         with self.assertRaises(common.IceboxError):
             commands.IceboxFreezeCommand("doesnotexist").run()
 
-    # TODO icebox should have a listing functionality that can be sued to
-    # verify that the frozen files are available in icebox and that the size
-    # is correct.
-
     def test_freeze_directory(self):
         # freeze should not work if the directory is not initialized
         with self.assertRaises(common.IceboxError):

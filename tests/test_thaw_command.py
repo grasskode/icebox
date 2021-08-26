@@ -49,22 +49,20 @@ class ThawCommandTest(unittest.TestCase):
         with self.assertRaises(common.IceboxError):
             commands.IceboxThawCommand(None).run()
 
-    # TODO icebox should have a listing functionality that can be sued to
-    # verify that the thawed files are removed from icebox.
-
     def test_thaw_path_existence_cases(self):
         # thaw should not work if the directory is not initialized
         with self.assertRaises(common.IceboxError):
             commands.IceboxThawCommand(str(self.test_folder)).run()
 
-        # thaw should throw an error if path does not exist and does not have
-        # frozen files
+        # thaw should throw an error if path does not exist locally and
+        # does not have frozen files remotely.
         commands.IceboxInitCommand(str(self.test_folder)).run()
         path = self.test_folder / Path("doesnotexist")
         with self.assertRaises(common.IceboxError):
             commands.IceboxThawCommand(str(path)).run()
 
-        # thaw should work if path does not exist but has frozen files
+        # thaw should work if path does not exist locally but has frozen files
+        # remotely.
         test_folder_to_be_deleted = test_utils.CreateTestFolder(
             'tobedeleted', prefix=self.test_folder)
         test_file_to_be_deleted = test_utils.CreateTestFile(
@@ -146,6 +144,7 @@ class ThawCommandTest(unittest.TestCase):
             self.test_subfolder_file.stat().st_size, test_subfolder_file_size)
 
         # thawing an overwritten frozen file should not replace contents
+        # TODO: consider throwing an error to inform the user.
         with self.test_subfolder_file.open(mode='w') as f:
             f.write("overwritten data.")
         overwritten_file_size = self.test_subfolder_file.stat().st_size
