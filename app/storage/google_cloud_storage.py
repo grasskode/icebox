@@ -1,3 +1,4 @@
+import json
 import typing
 
 from .icebox_storage import IceboxStorage
@@ -14,6 +15,9 @@ class GoogleCloudStorage(IceboxStorage):
         # read credentials from the configuration file
         self._client = storage.Client.from_service_account_json(cred)
         self._location = location
+        with open(cred) as f:
+            cred_json = json.load(f)
+            self.project_id = cred_json['project_id']
         self._bucket = self._check_or_create_bucket(bucket_name)
 
     def _check_or_create_bucket(self, bucket_name):
@@ -26,10 +30,10 @@ class GoogleCloudStorage(IceboxStorage):
         if bucket_name not in bucket_names:
             # create the bucket
             print(f"Creating {bucket_name} in {self._location}...")
-            bucket = self._client.create_bucket(
-                bucket_name, self._location, requester_pays=False)
-        else:
-            bucket = self._client.bucket(bucket_name)
+            self._client.create_bucket(
+                bucket_name, self._location)
+
+        bucket = self._client.bucket(bucket_name, user_project=self.project_id)
         # disable bucket.requester_pays
         # TODO: return to requester_pays. Maybe it's a useful idea.
         if bucket.requester_pays:

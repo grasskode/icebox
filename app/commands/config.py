@@ -107,7 +107,7 @@ Enter your choice [1]:""", end=" ")
         # Attempt to create storage client using the given credentials
         gcp_config = {
             'bucket': bucket_name,
-            'credentials': cred,
+            'credentials': str(cred),
             'default_location': location
         }
         self._configure_gcp(gcp_config)

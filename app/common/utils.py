@@ -8,7 +8,8 @@ from typing import Optional
 
 from .exceptions import IceboxError
 
-from app import config
+from app.config import ICEBOX_CONFIG_FILE_NAME
+from app.config import ICEBOX_CONFIG_LOCATION
 from app.elements.icebox import Icebox, LocalIcebox
 from app.elements.icebox_config import IceboxConfig
 from app.storage import google_cloud_storage as gcs
@@ -32,22 +33,24 @@ def ReadConfig() -> IceboxConfig:
 
     Returns None if config file does not exit.
     """
-    fn = (f"{config.ICEBOX_CONFIG_LOCATION}{os.sep}"
-          f"{config.ICEBOX_CONFIG_FILE_NAME}")
+    fn = (f"{ICEBOX_CONFIG_LOCATION}{os.sep}"
+          f"{ICEBOX_CONFIG_FILE_NAME}")
     if not os.path.isfile(fn):
         # print("Config file not found!")
         return None
     with open(fn, 'r') as f:
-        return IceboxConfig.from_dict(json.loads(f.read()))
+        config_json = json.loads(f.read())
+    return IceboxConfig(**config_json)
 
 
 def WriteConfig(config: IceboxConfig):
     """Write config to the user home."""
-    filename = (f"{config.ICEBOX_CONFIG_LOCATION}{os.sep}"
-                f"{config.ICEBOX_CONFIG_FILE_NAME}")
+    filename = (f"{ICEBOX_CONFIG_LOCATION}{os.sep}"
+                f"{ICEBOX_CONFIG_FILE_NAME}")
     print("Writing config.")
+    config_json = json.dumps(config.dict())
     with open(filename, 'w') as f:
-        f.write(json.dumps(config.to_dict()))
+        f.write(config_json)
 
 
 def GetStorage():
