@@ -5,6 +5,7 @@ from pathlib import Path
 
 from app.common import IceboxError
 from app.common import utils
+from app.elements.icebox import Icebox
 from app.elements.icebox import LocalIcebox
 
 
@@ -12,7 +13,7 @@ class IceboxInitCommand:
     def __init__(self, path: str):
         self.path: Path = utils.ResolvePath(path)
 
-    def run(self):
+    def run(self) -> Icebox:
         if not self.path or not self.path.exists():
             raise IceboxError("Missing path!")
         # check path for valid folder
@@ -27,9 +28,9 @@ class IceboxInitCommand:
                 "Cannot create another icebox here.")
 
         # good to go
-        self.__create_icebox(self.path)
+        return self.__create_icebox(self.path)
 
-    def __create_icebox(self, path: Path):
+    def __create_icebox(self, path: Path) -> Icebox:
         icebox_path: Path = utils.ResolveIcebox(path)
         # raise error if icebox already exists
         if icebox_path.is_file():
@@ -41,3 +42,4 @@ class IceboxInitCommand:
         icebox = LocalIcebox(
             id=f"{generate_slug(2)}_{int(time.time())}", path=str(path))
         utils.Finalize(icebox)
+        return icebox

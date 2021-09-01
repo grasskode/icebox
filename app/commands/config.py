@@ -70,9 +70,14 @@ Enter your choice [1]:""", end=" ")
             TODO
         """
         def _get_gcp_credentials_filepath() -> str:
+            creds_filepath = "~/.iceboxcfg/gcp/creds.json"
             print(
-                "Enter path for the GCP service account credentials:", end=" ")
-            return str(input().strip())
+                "Enter path for the GCP service account credentials "
+                f"[{creds_filepath}]:", end=" ")
+            input_creds_filepath = input().strip()
+            if input_creds_filepath != '':
+                creds_filepath = input_creds_filepath
+            return creds_filepath
 
         def _get_gcp_preferred_location() -> str:
             location = "asia-south1"
@@ -86,15 +91,18 @@ Enter your choice [1]:""", end=" ")
             return location
 
         def _get_gcp_bucket_name() -> str:
-            bucket_name = generate_slug(4)
+            # TODO: make the slug length and prefix configurable.
+            prefix = "icebox_"
+            bucket_name = generate_slug(3)
             print(
                 "Enter a unique bucket name or map to an existing one. Leave "
                 f"blank to use auto generated name ({bucket_name}):", end=" ")
             input_bucket_name = input().strip()
             if input_bucket_name != '':
                 bucket_name = input_bucket_name
-            # prepend `icebox_` to identify that it is an icebox bucket
-            bucket_name = f"icebox_{bucket_name}"
+            # add prefix to identify an icebox bucket
+            if not bucket_name.startswith(prefix):
+                bucket_name = f"{prefix}{bucket_name}"
             return bucket_name
 
         cred = utils.ResolvePath(_get_gcp_credentials_filepath())
@@ -107,7 +115,7 @@ Enter your choice [1]:""", end=" ")
         # Attempt to create storage client using the given credentials
         gcp_config = {
             'bucket': bucket_name,
-            'credentials': cred,
+            'credentials': str(cred),
             'default_location': location
         }
         self._configure_gcp(gcp_config)

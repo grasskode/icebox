@@ -5,7 +5,7 @@ from app.common import IceboxStorageError
 from app.elements.icebox_remote_file import IceboxRemoteFile
 
 
-class IceboxStorageType(enum.Enum):
+class IceboxStorageType(str, enum.Enum):
     LOCAL = 'LOCAL'
     GCP = 'GCP'
     AWS = 'AWS'
