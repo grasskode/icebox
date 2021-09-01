@@ -40,7 +40,7 @@ Enter the name of the bucket to be used.
 ```
 Enter a unique bucket name or map to an existing one. Leave blank to use auto generated name (something-utterly-random-here):
 ```
-If you wish to use an existing bucket or are setting up a new system to interact with an existing icebox, put the name of bucket following the `icebox_` in your [Cloud Storage Browser](https://console.cloud.google.com/storage/browser).
+Note that icebox buckets need to start with the `icebox_` prefix. In case you wish to create a bucket separately and use it for icebox, please ensure that it begins with the prefix. You can use either the full name of the bucket or the name following the `icebox_` prefix. Your existing storage buckets can be found in your [Cloud Storage Browser](https://console.cloud.google.com/storage/browser).
 
 
 ## Configure Storage
