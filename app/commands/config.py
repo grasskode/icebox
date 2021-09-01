@@ -86,15 +86,18 @@ Enter your choice [1]:""", end=" ")
             return location
 
         def _get_gcp_bucket_name() -> str:
-            bucket_name = generate_slug(4)
+            # TODO: make the slug length and prefix configurable.
+            prefix = "icebox_"
+            bucket_name = generate_slug(3)
             print(
                 "Enter a unique bucket name or map to an existing one. Leave "
                 f"blank to use auto generated name ({bucket_name}):", end=" ")
             input_bucket_name = input().strip()
             if input_bucket_name != '':
                 bucket_name = input_bucket_name
-            # prepend `icebox_` to identify that it is an icebox bucket
-            bucket_name = f"icebox_{bucket_name}"
+            # add prefix to identify an icebox bucket
+            if not bucket_name.startswith(prefix):
+                bucket_name = f"{prefix}{bucket_name}"
             return bucket_name
 
         cred = utils.ResolvePath(_get_gcp_credentials_filepath())
