@@ -47,6 +47,9 @@ def WriteConfig(config: IceboxConfig):
     """Write config to the user home."""
     filename = (f"{ICEBOX_CONFIG_LOCATION}{os.sep}"
                 f"{ICEBOX_CONFIG_FILE_NAME}")
+    # ensure that the parent folder exists.
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+
     print("Writing config.")
     config_json = json.dumps(config.dict())
     with open(filename, 'w') as f:

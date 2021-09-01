@@ -66,4 +66,4 @@ To use the `Google Cloud Storage` as the backup for icebox, we'll need to set up
 
 4. [Create a service account in the project.](https://cloud.google.com/iam/docs/creating-managing-service-accounts) Assign the role created in step 3 to this service account.
 
-5. [Create a set of JSON keys for the service account.](https://cloud.google.com/iam/docs/creating-managing-service-account-keys) Store the credentials locally.
+5. [Create a set of JSON keys for the service account.](https://cloud.google.com/iam/docs/creating-managing-service-account-keys) Store the credentials locally. The default location for creds is `~/.iceboxcfg/gcp/creds.json` but you can store it elsewhere and override the location during `icebox config`.

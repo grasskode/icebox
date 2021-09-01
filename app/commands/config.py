@@ -70,9 +70,14 @@ Enter your choice [1]:""", end=" ")
             TODO
         """
         def _get_gcp_credentials_filepath() -> str:
+            creds_filepath = "~/.iceboxcfg/gcp/creds.json"
             print(
-                "Enter path for the GCP service account credentials:", end=" ")
-            return str(input().strip())
+                "Enter path for the GCP service account credentials "
+                f"[{creds_filepath}]:", end=" ")
+            input_creds_filepath = input().strip()
+            if input_creds_filepath != '':
+                creds_filepath = input_creds_filepath
+            return creds_filepath
 
         def _get_gcp_preferred_location() -> str:
             location = "asia-south1"
