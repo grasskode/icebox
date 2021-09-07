@@ -41,3 +41,8 @@ class LocalIcebox(Icebox):
 
     def is_valid(self) -> bool:
         return super().is_valid() and self.path and Path(self.path).is_dir()
+
+
+class IceboxError(Exception):
+    def __init__(self, message):
+        self.message = message

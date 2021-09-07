@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app import config
-from app.common import IceboxError
+from app.elements.icebox import IceboxError
 from app.common import utils
 from app.elements.icebox import Icebox
 from app.storage.icebox_storage import IceboxStorage
