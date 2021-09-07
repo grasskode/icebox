@@ -1,8 +1,11 @@
 import enum
 import typing
 
-from app.common import IceboxStorageError
 from app.elements.icebox_remote_file import IceboxRemoteFile
+
+
+class IceboxStorageError(Exception):
+    pass
 
 
 class IceboxStorageType(str, enum.Enum):

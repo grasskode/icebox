@@ -42,6 +42,19 @@ Enter a unique bucket name or map to an existing one. Leave blank to use auto ge
 ```
 Note that icebox buckets need to start with the `icebox_` prefix. In case you wish to create a bucket separately and use it for icebox, please ensure that it begins with the prefix. You can use either the full name of the bucket or the name following the `icebox_` prefix. Your existing storage buckets can be found in your [Cloud Storage Browser](https://console.cloud.google.com/storage/browser).
 
+## Workflows
+
+### Init
+
+Icebox can be used in any "initialized" folder. To initialize a folder, you need to use the following command.
+
+```bash
+python icebox.py init <path>
+```
+
+Icebox adds a unique ID to the initialized directory and creates an entry in the configured remote. You can check the details in the file created at `<path>/.icebox`.
+
+Along with [clone](TODO), `init` is the first step in any workflow for using icebox.
 
 ## Configure Storage
 
@@ -54,6 +67,7 @@ To use the `Google Cloud Storage` as the backup for icebox, we'll need to set up
 2. [Enable billing for the project.](https://cloud.google.com/billing/docs/how-to/modify-project#enable_billing_for_a_project)
 
 3. [Create a role in the project.](https://cloud.google.com/iam/docs/creating-custom-roles) Assign the following permissions to the role.
+  * serviceusage.services.use
   * storage.buckets.create
   * storage.buckets.get
   * storage.buckets.list

@@ -2,7 +2,7 @@ import json
 import typing
 
 from .icebox_storage import IceboxStorage
-from app.common import IceboxStorageError
+from .icebox_storage import IceboxStorageError
 from app.common import utils
 
 from google.cloud import storage

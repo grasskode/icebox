@@ -8,11 +8,11 @@ from typing import Optional
 
 from .exceptions import IceboxError
 
-from app.config import ICEBOX_CONFIG_FILE_NAME
-from app.config import ICEBOX_CONFIG_LOCATION
+from app import config
 from app.elements.icebox import Icebox, LocalIcebox
 from app.elements.icebox_config import IceboxConfig
 from app.storage import google_cloud_storage as gcs
+from app.storage import icebox_storage
 from app.storage import local_storage
 
 
@@ -33,8 +33,8 @@ def ReadConfig() -> IceboxConfig:
 
     Returns None if config file does not exit.
     """
-    fn = (f"{ICEBOX_CONFIG_LOCATION}{os.sep}"
-          f"{ICEBOX_CONFIG_FILE_NAME}")
+    fn = (f"{config.ICEBOX_CONFIG_LOCATION}{os.sep}"
+          f"{config.ICEBOX_CONFIG_FILE_NAME}")
     if not os.path.isfile(fn):
         # print("Config file not found!")
         return None
@@ -43,15 +43,15 @@ def ReadConfig() -> IceboxConfig:
     return IceboxConfig(**config_json)
 
 
-def WriteConfig(config: IceboxConfig):
+def WriteConfig(iceboxcfg: IceboxConfig):
     """Write config to the user home."""
-    filename = (f"{ICEBOX_CONFIG_LOCATION}{os.sep}"
-                f"{ICEBOX_CONFIG_FILE_NAME}")
+    filename = (f"{config.ICEBOX_CONFIG_LOCATION}{os.sep}"
+                f"{config.ICEBOX_CONFIG_FILE_NAME}")
     # ensure that the parent folder exists.
     Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     print("Writing config.")
-    config_json = json.dumps(config.dict())
+    config_json = json.dumps(iceboxcfg.dict())
     with open(filename, 'w') as f:
         f.write(config_json)
 
@@ -137,15 +137,27 @@ def ExistsInIcebox(path: Path, icebox: LocalIcebox) -> bool:
 
 
 def Finalize(icebox: LocalIcebox):
+    """Finalize an icebox.
+
+    Write out the icebox locally and upload it to the configured remote.
+
+    Raises:
+        IceboxError
+        IceboxStorageError
+    """
     if not icebox:
         raise IceboxError("Cannot finalize without icebox!")
     icebox_path = ResolveIcebox(icebox.path)
+    # write the icebox file locally
     with open(icebox_path, 'w') as f:
         data = Icebox(**icebox.dict()).dict()
         f.write(json.dumps(data))
-    # upload icebox to remote
-    UploadFile(icebox, icebox_path)
-
+    try:
+        # upload icebox to remote
+        UploadFile(icebox, icebox_path)
+    except icebox_storage.IceboxStorageError as e:
+        icebox_path.unlink(missing_ok=True)
+        raise e
 
 def Synchronize(icebox: LocalIcebox) -> LocalIcebox:
     if not icebox:
