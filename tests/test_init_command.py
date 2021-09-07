@@ -8,6 +8,7 @@ from .utils import TestUtils
 from app import commands
 from app import common
 from app import config
+from app.elements.icebox import IceboxError
 from app.storage import local_storage
 
 test_utils = TestUtils()
@@ -38,13 +39,13 @@ class InitCommandTest(unittest.TestCase):
     def test_init_folder_needs_path(self):
         """Init command requires a valid existing directory to run."""
         # init without path or on non-existent folder should throw error
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxInitCommand(None).run()
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxInitCommand("doesnotexist").run()
 
         # init should not work on a path that is not a directory
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxInitCommand(
                 str(InitCommandTest.test_folder_file)).run()
 
@@ -59,11 +60,11 @@ class InitCommandTest(unittest.TestCase):
         self.assertTrue(icebox_path.is_file())
 
         # init should not initialize a folder that is already initialized
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxInitCommand(
                 str(InitCommandTest.test_folder)).run()
 
         # init should not work if a parent folder is initialized
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxInitCommand(
                 str(InitCommandTest.test_subfolder)).run()

@@ -6,10 +6,10 @@ import typing
 from pathlib import Path
 from typing import Optional
 
-from .exceptions import IceboxError
-
 from app import config
-from app.elements.icebox import Icebox, LocalIcebox
+from app.elements.icebox import Icebox
+from app.elements.icebox import IceboxError
+from app.elements.icebox import LocalIcebox
 from app.elements.icebox_config import IceboxConfig
 from app.storage import google_cloud_storage as gcs
 from app.storage import icebox_storage
@@ -58,13 +58,15 @@ def WriteConfig(iceboxcfg: IceboxConfig):
 
 def GetStorage():
     """Get the configured storage."""
+    if config.IsTest():
+        # return local storage for test environment
+        return local_storage.LocalStorage(config.LOCAL_STORAGE_PATH)
+
+    # for non-test, read configuration and return the appropriate storage.
     icebox_config = ReadConfig()
     if not icebox_config:
-        if not config.IsTest():
-            raise IceboxError("Icebox not configured.")
-        else:
-            # return local storage for test environment
-            return local_storage.LocalStorage(config.LOCAL_STORAGE_PATH)
+        raise IceboxError("Icebox not configured.")
+
     if icebox_config.storage_choice == 'GCP':
         return gcs.GoogleCloudStorage(
             icebox_config.storage_options['credentials'],
