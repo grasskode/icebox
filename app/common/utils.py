@@ -44,7 +44,10 @@ def ReadConfig() -> IceboxConfig:
 
 
 def WriteConfig(iceboxcfg: IceboxConfig):
-    """Write config to the user home."""
+    """Write config to the configured path.
+
+    Creates parents for the configured path if it does not exist.
+    """
     filename = (f"{config.ICEBOX_CONFIG_LOCATION}{os.sep}"
                 f"{config.ICEBOX_CONFIG_FILE_NAME}")
     # ensure that the parent folder exists.
@@ -57,7 +60,15 @@ def WriteConfig(iceboxcfg: IceboxConfig):
 
 
 def GetStorage():
-    """Get the configured storage."""
+    """Get the configured storage.
+
+    Return the storage configured for icebox. Checks the environment and
+    returns a local storage in case of test env irrespective of what was
+    configured.
+
+    Raises:
+        IceboxError
+    """
     if config.IsTest():
         # return local storage for test environment
         return local_storage.LocalStorage(config.LOCAL_STORAGE_PATH)
