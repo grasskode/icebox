@@ -8,7 +8,9 @@ load_dotenv(dotenv_path=(Path('.') / '.env_test'))
 from .utils import TestUtils
 from app import commands
 from app import common
+from app.elements.icebox import IceboxError
 from app.storage import local_storage
+from app.storage.icebox_storage import IceboxStorageError
 
 test_utils = TestUtils()
 
@@ -156,7 +158,7 @@ class ThawCommandTest(unittest.TestCase):
     @patch(
         'app.commands.IceboxThawCommand._IceboxThawCommand__download_file')
     def test_thaw_download_error(self, mocked_function):
-        mocked_function.side_effect = common.IceboxStorageError()
+        mocked_function.side_effect = IceboxStorageError()
         commands.IceboxInitCommand(str(self.test_folder)).run()
         commands.IceboxFreezeCommand(str(self.test_folder_file)).run()
         # thaw should not work when an error is thrown
