@@ -29,7 +29,7 @@ def ResolvePath(path: str) -> Path:
 
 
 def ReadConfig() -> IceboxConfig:
-    """Read config from the user home.
+    """Reads config from the configured path.
 
     Returns None if config file does not exit.
     """
@@ -62,7 +62,7 @@ def WriteConfig(iceboxcfg: IceboxConfig):
 def GetStorage():
     """Get the configured storage.
 
-    Return the storage configured for icebox. Checks the environment and
+    Returns the storage configured for icebox. Checks the environment and
     returns a local storage in case of test env irrespective of what was
     configured.
 

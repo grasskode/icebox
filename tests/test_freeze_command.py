@@ -44,14 +44,14 @@ class FreezeCommandTest(unittest.TestCase):
 
     def test_freeze_requires_path(self):
         # freeze should throw an error without path or if path is non existent
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxFreezeCommand(None).run()
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxFreezeCommand("doesnotexist").run()
 
     def test_freeze_directory(self):
         # freeze should not work if the directory is not initialized
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxFreezeCommand(str(self.test_folder)).run()
 
         # freeze should work on an initialized directory
