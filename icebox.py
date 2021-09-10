@@ -6,6 +6,7 @@ import traceback
 
 from app import common
 from app import commands
+from app.elements.icebox import IceboxError
 
 
 USAGE = 'icebox <command> [<args>]'
@@ -49,7 +50,7 @@ def config(args):
         return
     try:
         commands.IceboxConfigCommand().run()
-    except common.IceboxError as e:
+    except IceboxError as e:
         print(e)
     except Exception:
         traceback.print_exc()
@@ -61,7 +62,7 @@ def init(args):
         return
     try:
         commands.IceboxInitCommand(path=args[0]).run()
-    except common.IceboxError as e:
+    except IceboxError as e:
         print(e)
     except Exception:
         traceback.print_exc()
@@ -73,7 +74,7 @@ def clone(args):
         return
     try:
         commands.IceboxCloneCommand(icebox=args[0], path=args[1]).run()
-    except common.IceboxError as e:
+    except IceboxError as e:
         print(e)
     except Exception:
         traceback.print_exc()
@@ -84,9 +85,13 @@ def freeze(args):
         print("Exactly one argument required - freeze <path>")
         return
     try:
-        commands.IceboxFreezeCommand(path=args[0]).run()
-    except common.IceboxError as e:
+        cmd = commands.IceboxFreezeCommand(path=args[0])
+        cmd.run()
+    except IceboxError as e:
         print(e)
+    except KeyboardInterrupt as e:
+        if cmd and cmd.icebox:
+            common.utils.Finalize(cmd.icebox)
     except Exception:
         traceback.print_exc()
 
@@ -96,9 +101,13 @@ def thaw(args):
         print("Exactly one argument required - thaw <path>")
         return
     try:
-        commands.IceboxThawCommand(path=args[0]).run()
-    except common.IceboxError as e:
+        cmd = commands.IceboxThawCommand(path=args[0])
+        cmd.run()
+    except IceboxError as e:
         print(e)
+    except KeyboardInterrupt as e:
+        if cmd and cmd.icebox:
+            common.utils.Finalize(cmd.icebox)
     except Exception:
         traceback.print_exc()
 
@@ -120,7 +129,7 @@ def list(args):
             commands.IceboxListCommand(
                 parent=os.getcwd(), remote=parsed_args.remote,
                 recursive=parsed_args.recursive).run()
-    except common.IceboxError as e:
+    except IceboxError as e:
         print(e)
     except Exception:
         traceback.print_exc()

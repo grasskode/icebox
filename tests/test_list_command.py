@@ -46,12 +46,12 @@ class ListCommandTest(unittest.TestCase):
 
     def test_list_args(self):
         # list should raise error without parent or remote arguments
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxListCommand(parent=None, remote=None).run()
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxListCommand(
                 parent=str(self.test_folder), remote=None).run()
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxListCommand(parent=None, remote='.').run()
 
         # list should work with remote_path argument
@@ -66,7 +66,7 @@ class ListCommandTest(unittest.TestCase):
 
     def test_list_path_initialized(self):
         # list should raise error for uninitialized folder
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxListCommand(
                 parent=str(self.test_folder), remote='.').run()
 

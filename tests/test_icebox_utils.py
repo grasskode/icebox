@@ -65,7 +65,7 @@ class IceboxUtilsTest(unittest.TestCase):
                        f"{config.ICEBOX_FILE_NAME}")
 
         # Finalize requires an icebox.
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             common.utils.Finalize(None)
 
         # any changes made locally should reflect in remote after finalize
@@ -89,7 +89,7 @@ class IceboxUtilsTest(unittest.TestCase):
                        f"{config.ICEBOX_FILE_NAME}")
 
         # Synchronize requires an icebox.
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             common.utils.Synchronize(None)
 
         # synchronize should throw error if the remote icebox contents are
@@ -97,7 +97,7 @@ class IceboxUtilsTest(unittest.TestCase):
         with open(temp_file, 'w') as f:
             f.write("Random string that is not an icebox.")
         IceboxUtilsTest.storage.Upload(str(temp_file), remote_path)
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             common.utils.Synchronize(icebox)
 
         # any valid changes made remotely should reflect locally after

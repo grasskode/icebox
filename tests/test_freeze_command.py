@@ -8,7 +8,9 @@ load_dotenv(dotenv_path=(Path('.') / '.env_test'))
 from .utils import TestUtils
 from app import commands
 from app import common
+from app.elements.icebox import IceboxError
 from app.storage import local_storage
+from app.storage.icebox_storage import IceboxStorageError
 
 test_utils = TestUtils()
 
@@ -44,14 +46,14 @@ class FreezeCommandTest(unittest.TestCase):
 
     def test_freeze_requires_path(self):
         # freeze should throw an error without path or if path is non existent
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxFreezeCommand(None).run()
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxFreezeCommand("doesnotexist").run()
 
     def test_freeze_directory(self):
         # freeze should not work if the directory is not initialized
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxFreezeCommand(str(self.test_folder)).run()
 
         # freeze should work on an initialized directory
@@ -114,7 +116,7 @@ class FreezeCommandTest(unittest.TestCase):
     @patch(
         'app.commands.IceboxFreezeCommand._IceboxFreezeCommand__upload_file')
     def test_freeze_upload_error(self, mocked_function):
-        mocked_function.side_effect = common.IceboxStorageError()
+        mocked_function.side_effect = IceboxStorageError()
         # freeze should not work when an error is thrown
         commands.IceboxInitCommand(str(self.test_folder)).run()
         commands.IceboxFreezeCommand(str(self.test_folder_file)).run()

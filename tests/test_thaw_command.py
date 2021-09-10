@@ -8,7 +8,9 @@ load_dotenv(dotenv_path=(Path('.') / '.env_test'))
 from .utils import TestUtils
 from app import commands
 from app import common
+from app.elements.icebox import IceboxError
 from app.storage import local_storage
+from app.storage.icebox_storage import IceboxStorageError
 
 test_utils = TestUtils()
 
@@ -46,19 +48,19 @@ class ThawCommandTest(unittest.TestCase):
 
     def test_thaw_requires_path(self):
         # thaw should throw an error without path
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxThawCommand(None).run()
 
     def test_thaw_path_existence_cases(self):
         # thaw should not work if the directory is not initialized
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxThawCommand(str(self.test_folder)).run()
 
         # thaw should throw an error if path does not exist locally and
         # does not have frozen files remotely.
         commands.IceboxInitCommand(str(self.test_folder)).run()
         path = self.test_folder / Path("doesnotexist")
-        with self.assertRaises(common.IceboxError):
+        with self.assertRaises(IceboxError):
             commands.IceboxThawCommand(str(path)).run()
 
         # thaw should work if path does not exist locally but has frozen files
@@ -156,7 +158,7 @@ class ThawCommandTest(unittest.TestCase):
     @patch(
         'app.commands.IceboxThawCommand._IceboxThawCommand__download_file')
     def test_thaw_download_error(self, mocked_function):
-        mocked_function.side_effect = common.IceboxStorageError()
+        mocked_function.side_effect = IceboxStorageError()
         commands.IceboxInitCommand(str(self.test_folder)).run()
         commands.IceboxFreezeCommand(str(self.test_folder_file)).run()
         # thaw should not work when an error is thrown

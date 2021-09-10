@@ -44,7 +44,7 @@ Note that icebox buckets need to start with the `icebox_` prefix. In case you wi
 
 ## Workflows
 
-### Init
+### Init<a name="workflow_init"></a>
 
 Icebox can be used in any "initialized" folder. To initialize a folder, you need to use the following command.
 
@@ -55,6 +55,29 @@ python icebox.py init <path>
 Icebox adds a unique ID to the initialized directory and creates an entry in the configured remote. You can check the details in the file created at `<path>/.icebox`.
 
 Along with [clone](TODO), `init` is the first step in any workflow for using icebox.
+
+### Freeze<a name="workflow_freeze"></a>
+
+You can freeze files or folders inside an [initialized icebox](#workflow_init). A frozen file uploads the contents of the file to the remote storage and replaces it locally with a *preview* thumbnail (simply a 0 size file at the moment). Freezing a folder has the same effect as freezing all the files within it.
+
+To freeze, use the following command.
+```bash
+python icebox.py freeze <path>
+```
+
+> A locally overwritten frozen file can be refrozen. This will replace the remote contents with the overwritten data.
+
+### Thaw
+
+A [frozen file](#workflow_freeze) or folder can be thawed. This command restores the original content of the file from the remote storage. Thawing a folder has the same effect as thawing all frozen files inside it.
+
+To thaw, use the following command.
+```bash
+python icebox.py thaw <path>
+```
+
+> A locally overwritten frozen file cannot be thawed. The remote contents remain intact till the file is refrozen.
+
 
 ## Configure Storage
 
