@@ -17,10 +17,16 @@ class IceboxStorageType(str, enum.Enum):
 class IceboxStorage:
     """Informal interface for all storage classes supported by Icebox."""
 
-    def ListAll(self) -> typing.List[str]:
+    def ListRemote(
+            self, rel_path: typing.Optional[str] = None
+    ) -> typing.Tuple[
+            typing.List[IceboxRemoteFile], typing.List[IceboxRemoteFile]]:
         """List the remote iceboxes.
 
-        Returns a list remote icebox IDs.
+        If a remote path is provides, it lists the given path in the remote
+        storage.
+
+        Returns a tuple and folder and file.
 
         Raises
             IceboxStorageError

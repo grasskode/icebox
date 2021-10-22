@@ -78,6 +78,10 @@ python icebox.py thaw <path>
 
 > A locally overwritten frozen file cannot be thawed. The remote contents remain intact till the file is refrozen.
 
+### List
+
+You can list an icebox (remote or local). This allows you to check the contents of an icebox and navigate through it without necessarily cloning it.
+
 
 ## Configure Storage
 

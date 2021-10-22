@@ -1,5 +1,10 @@
 import json
+from pathlib import Path
+import re
 import typing
+from app import config
+
+from app.elements.icebox_remote_file import IceboxRemoteFile
 
 from .icebox_storage import IceboxStorage
 from .icebox_storage import IceboxStorageError
@@ -19,6 +24,7 @@ class GoogleCloudStorage(IceboxStorage):
             cred_json = json.load(f)
             self.project_id = cred_json['project_id']
         self._bucket = self._check_or_create_bucket(bucket_name)
+        self._bucket_name = bucket_name
 
     def _check_or_create_bucket(self, bucket_name):
         """Checks whether the bucket exists or creates one.
@@ -36,6 +42,7 @@ class GoogleCloudStorage(IceboxStorage):
         bucket = self._client.bucket(bucket_name, user_project=self.project_id)
         # disable bucket.requester_pays
         # TODO: return to requester_pays. Maybe it's a useful idea.
+        # TODO: this is not working for whatever reason. Check.
         if bucket.requester_pays:
             print(f"Disabling requester pays on bucket {bucket_name}.")
             bucket.requester_pays = False
@@ -111,3 +118,33 @@ class GoogleCloudStorage(IceboxStorage):
         except Exception as e:
             print(e)
             raise IceboxStorageError("Error downloading file!")
+
+    def ListRemote(
+            self, rel_path: typing.Optional[str] = None
+            ) -> typing.Tuple[
+                typing.List[IceboxRemoteFile], typing.List[IceboxRemoteFile]]:
+        """List the remote iceboxes.
+
+        If a remote path is provides, it lists the given path in the remote
+        storage.
+
+        Returns a tuple and folder and file.
+
+        Raises
+            IceboxStorageError
+        """
+        delimiter = config.REMOTE_PATH_DELIMITER
+        if rel_path and not rel_path.endswith(delimiter):
+            rel_path = f"{rel_path}{delimiter}"
+        
+        folders, files = [], []
+        blobs = self._client.list_blobs(
+            self._bucket_name, prefix=rel_path, delimiter=delimiter)
+        for blob in blobs:
+            name = blob.name[len(rel_path):]
+            if name != config.ICEBOX_FILE_NAME:
+                files.append(IceboxRemoteFile(name=name))
+        for prefix in blobs.prefixes:
+            name = prefix[len(rel_path):]
+            folders.append(IceboxRemoteFile(name=name))
+        return folders, files

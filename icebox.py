@@ -115,16 +115,19 @@ def thaw(args):
 def list(args):
     parser = argparse.ArgumentParser(
         description='Parse arguments for list command.')
-    parser.add_argument('remote', type=str,
-                        help='remote path to list.', default='.')
-    parser.add_argument('-r', dest='recursive', action='store_true',
-                        help='List files recursively.')
-    parser.add_argument('-a', dest='all', action='store_true',
-                        help='List all remote iceboxes.')
+    parser.add_argument(
+        'remote', type=str, nargs='?', default=None,
+        help='icebox path to list.')
+    parser.add_argument(
+        '-r', dest='recursive', action='store_true',
+        help='List files recursively.')
+    parser.add_argument(
+        '-a', '--remote', dest='all', action='store_true',
+        help='List all remote iceboxes.')
     parsed_args = parser.parse_args(args)
     try:
         if parsed_args.all:
-            commands.IceboxListAllCommand().run()
+            commands.IceboxListRemoteCommand().run(remote=parsed_args.remote)
         else:
             commands.IceboxListCommand(
                 parent=os.getcwd(), remote=parsed_args.remote,

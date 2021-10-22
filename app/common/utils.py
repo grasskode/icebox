@@ -114,6 +114,7 @@ def SyncIcebox(remote: str, local: str, storage=None):
 
 
 def FindIcebox(path: Path) -> typing.Optional[LocalIcebox]:
+    print(f"Finding icebox for {str(path)}")
     if not path:
         return None
     while True:

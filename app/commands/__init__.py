@@ -3,5 +3,5 @@ from .config import IceboxConfigCommand
 from .freeze import IceboxFreezeCommand
 from .init import IceboxInitCommand
 from .list import IceboxListCommand
-from .list_all import IceboxListAllCommand
+from .list_remote import IceboxListRemoteCommand
 from .thaw import IceboxThawCommand

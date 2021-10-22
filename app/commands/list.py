@@ -18,6 +18,7 @@ class IceboxListCommand:
         self.path: Path = (
             None if not parent or not remote
             else utils.ResolvePath(os.sep.join([parent, remote])))
+        print(f"Resolved path {self.path} | {parent}, {remote}")
         self.icebox: Icebox = utils.FindIcebox(self.path)
         self.storage: IceboxStorage = utils.GetStorage()
 

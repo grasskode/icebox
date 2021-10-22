@@ -23,23 +23,44 @@ class LocalStorage(IceboxStorage):
         self.storage_path = Path(path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
-    def ListAll(self) -> typing.List[str]:
+    def ListRemote(
+            self, rel_path: typing.Optional[str] = None
+            ) -> typing.Tuple[
+                typing.List[IceboxRemoteFile], typing.List[IceboxRemoteFile]]:
         """List the remote iceboxes.
 
-        Returns a list remote icebox IDs.
+        If a remote path is provides, it lists the given path in the remote
+        storage.
 
-        Overrides the default unimplemented method in IceboxStorage.
+        Returns a tuple and folder and file.
 
         Raises
             IceboxStorageError
         """
-        iceboxes = []
-        for child in self.storage_path.iterdir():
-            # check if child is an icebox
-            icebox = utils.ReadIcebox(child)
-            if icebox:
-                iceboxes.append(icebox)
-        return sorted(iceboxes, key=lambda x: x.id)
+        folders, files = [], []
+        path = self.storage_path
+        if rel_path:
+            path = self.storage_path / Path(rel_path)
+        if not path.exists():
+            raise IceboxStorageError("Path not found!")
+        if path.is_file():
+            files.append(IceboxRemoteFile.from_path(str(path), path))
+        else:
+            for child in path.iterdir():
+                child_path = os.path.relpath(
+                    str(child), str(self.storage_path))
+                if child.is_file():
+                    files.append(
+                        IceboxRemoteFile.from_path(child_path, child))
+                else:
+                    # check if child is an icebox
+                    icebox = utils.ReadIcebox(child)
+                    if icebox:
+                        folders.append(
+                            IceboxRemoteFile.from_path(child_path, child))
+        folders = sorted(folders, key=lambda x: x.name)
+        files = sorted(files, key=lambda x: x.name)
+        return folders, files
 
     def List(self, icebox: Icebox, remote_path: str,
              recursive: bool = False) -> typing.Tuple[
