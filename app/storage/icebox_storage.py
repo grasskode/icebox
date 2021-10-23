@@ -1,7 +1,8 @@
 import enum
 import typing
+from app.elements.icebox import Icebox
 
-from app.elements.icebox_remote_file import IceboxRemoteFile
+from app.elements.icebox_files import IceboxLocalFile, IceboxRemoteFile
 
 
 class IceboxStorageError(Exception):
@@ -18,7 +19,7 @@ class IceboxStorage:
     """Informal interface for all storage classes supported by Icebox."""
 
     def ListRemote(
-            self, rel_path: typing.Optional[str] = None
+            self, path: typing.Optional[str] = None
     ) -> typing.Tuple[
             typing.List[IceboxRemoteFile], typing.List[IceboxRemoteFile]]:
         """List the remote iceboxes.
@@ -34,12 +35,12 @@ class IceboxStorage:
         raise IceboxStorageError("Unimplemented.")
 
     def List(
-            self, remote_path: str, recursive: bool = False
-            ) -> typing.Tuple[
-                typing.List[IceboxRemoteFile], typing.List[IceboxRemoteFile]]:
-        """List the objects in the given remote path.
+            self, icebox: Icebox, relpath: str
+    ) -> typing.Tuple[
+            typing.List[IceboxLocalFile], typing.List[IceboxLocalFile]]:
+        """List the objects in the given icebox path.
 
-        Returns a tuple of list of directories and list of files.
+        Returns a tuple of folders and files.
 
         Raises
             IceboxStorageError

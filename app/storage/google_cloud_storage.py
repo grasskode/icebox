@@ -1,10 +1,12 @@
 import json
-from pathlib import Path
-import re
+import os
 import typing
-from app import config
+from datetime import datetime
+from pathlib import Path
 
-from app.elements.icebox_remote_file import IceboxRemoteFile
+from app import config
+from app.elements.icebox import Icebox
+from app.elements.icebox_files import IceboxLocalFile, IceboxRemoteFile
 
 from .icebox_storage import IceboxStorage
 from .icebox_storage import IceboxStorageError
@@ -49,52 +51,6 @@ class GoogleCloudStorage(IceboxStorage):
             bucket.patch()
         return bucket
 
-    def List(
-            self, remote_path: str, recursive: bool = False
-            ) -> typing.Tuple[typing.List[str], typing.List[str]]:
-        """List the files in the given remote location."""
-        if not self._client:
-            raise IceboxStorageError("Client not configured!")
-        if not self._bucket:
-            raise IceboxStorageError("Bucket not configured!")
-        try:
-            all_blobs = []
-            dirs = []
-            # check if the remote_path is a file or directory
-            blob = self._bucket.get_blob(remote_path)
-            if blob:
-                # remote path is a file
-                all_blobs.append(blob)
-            else:
-                # remote_path is not a file or does not exist
-                # check if remote_path is a directory
-                if not remote_path.endswith(utils.REMOTE_PATH_DELIMITER):
-                    remote_path += utils.REMOTE_PATH_DELIMITER
-                delimiter = None if recursive else utils.REMOTE_PATH_DELIMITER
-                # TODO we are not getting prefixes for some weird reason.
-                # Check this.
-                blobs = self._client.list_blobs(
-                    self._bucket, prefix=remote_path, delimiter=delimiter)
-                # print(blobs.prefixes)
-                for p in blobs.prefixes:
-                    split_path = p.split(utils.REMOTE_PATH_DELIMITER)
-                    dirs.append(
-                        utils.REMOTE_PATH_DELIMITER.join(split_path[1:]))
-                dirs.sort()
-                all_blobs = list(blobs)
-            files = []
-            for b in all_blobs:
-                split_path = b.name.split(utils.REMOTE_PATH_DELIMITER)
-                files.append({
-                    'name': utils.REMOTE_PATH_DELIMITER.join(split_path[1:]),
-                    'size': b.size,
-                    'updated': b.updated
-                })
-            return dirs, files
-        except Exception as e:
-            print(e)
-            raise IceboxStorageError("Error listing remote path!")
-
     def Upload(self, source_path: str, dest_path: str):
         """Upload a file to the remote location."""
         if not self._bucket:
@@ -120,9 +76,9 @@ class GoogleCloudStorage(IceboxStorage):
             raise IceboxStorageError("Error downloading file!")
 
     def ListRemote(
-            self, rel_path: typing.Optional[str] = None
-            ) -> typing.Tuple[
-                typing.List[IceboxRemoteFile], typing.List[IceboxRemoteFile]]:
+            self, path: typing.Optional[str] = None
+    ) -> typing.Tuple[
+            typing.List[IceboxRemoteFile], typing.List[IceboxRemoteFile]]:
         """List the remote iceboxes.
 
         If a remote path is provides, it lists the given path in the remote
@@ -133,18 +89,81 @@ class GoogleCloudStorage(IceboxStorage):
         Raises
             IceboxStorageError
         """
+        if not self._client:
+            raise IceboxStorageError("Client not configured!")
+        
         delimiter = config.REMOTE_PATH_DELIMITER
-        if rel_path and not rel_path.endswith(delimiter):
-            rel_path = f"{rel_path}{delimiter}"
+        if path and not path.endswith(delimiter):
+            path = f"{path}{delimiter}"
         
         folders, files = [], []
         blobs = self._client.list_blobs(
-            self._bucket_name, prefix=rel_path, delimiter=delimiter)
+            self._bucket_name, prefix=path, delimiter=delimiter)
         for blob in blobs:
-            name = blob.name[len(rel_path):]
+            name = blob.name[len(path):] if path else blob.name
             if name != config.ICEBOX_FILE_NAME:
-                files.append(IceboxRemoteFile(name=name))
+                files.append(
+                    IceboxRemoteFile(name=name,
+                    size=blob.size, updated=blob.updated))
         for prefix in blobs.prefixes:
-            name = prefix[len(rel_path):]
-            folders.append(IceboxRemoteFile(name=name))
+            name = prefix[len(path):] if path else prefix
+            folders.append(
+                IceboxRemoteFile(name=name, is_dir=True))
         return folders, files
+
+    def List(
+            self, icebox: Icebox, relpath: str
+    ) -> typing.Tuple[
+            typing.List[IceboxLocalFile], typing.List[IceboxLocalFile]]:
+        """List the objects in the given icebox path.
+
+        Returns a tuple of folders and files.
+
+        Raises
+            IceboxStorageError
+        """
+        
+        path = (Path(icebox.path) / Path(relpath)).resolve()
+        if not path.exists():
+            raise IceboxStorageError(f"'{str(path)}' does not exist.")
+        
+        folders, files = [], []
+        if path.is_file():
+            ilf = _from_path(path)
+            if ilf:
+                if relpath in icebox.frozen_files:
+                    ilf.is_frozen = True
+                    if ilf.size > 0:
+                        ilf.is_modified = True
+                files.append(ilf)
+        else:
+            for child in path.iterdir():
+                child_path = os.path.relpath(
+                    str(child), str(icebox.path))
+                if child.is_file():
+                    ilf = _from_path(Path(child))
+                    if ilf:
+                        if child_path in icebox.frozen_files:
+                            ilf.is_frozen = True
+                            if ilf.size > 0:
+                                ilf.is_modified = True
+                        files.append(ilf)
+                else:
+                    folders.append(_from_path(Path(child)))
+        folders = sorted(folders, key=lambda x: x.name)
+        files = sorted(files, key=lambda x: x.name)
+        return folders, files
+
+
+def _from_path(path: Path) -> IceboxLocalFile:
+    path = path.resolve()
+    if path.is_dir():
+        return IceboxLocalFile(
+            name=f"{path.name}{os.sep}", is_dir=True)
+    else:
+        if path.name == config.ICEBOX_FILE_NAME:
+            return None
+        return IceboxLocalFile(
+            name=path.name,
+            size=path.stat().st_size,
+            updated=datetime.fromtimestamp(path.stat().st_mtime))
