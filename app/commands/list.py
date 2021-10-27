@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 import os
 
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple
+from typing import Any, List
 
-from app import config
+from pydantic import BaseModel
+
 from app.elements.icebox import IceboxError
 from app.common import utils
 from app.elements.icebox import Icebox
-from app.elements.icebox_files import IceboxRemoteFile
 from app.storage.icebox_storage import IceboxStorage
 from app.storage.icebox_storage import IceboxStorageError
 
@@ -20,9 +22,10 @@ class IceboxListCommand:
     def run(self, path: str, remote: bool):
         try:
             if remote:
-                self.list_remote(path)
+                result = self.list_remote(path)
             else:
-                self.list_local(path)
+                result =self.list_local(path)
+            print(result.output)
             
             # TODO: alternate formatting option
             # max_time_width = len(
@@ -38,11 +41,12 @@ class IceboxListCommand:
                 f"Unable to list path! Check stack trace for "
                 "error.")
 
-    def list_local(self, path: str):
+    def list_local(self, path: str) -> ListResult:
         """List files assuming the path to be local.
-
-        total 5
+        
+        icebox_name
         (* frozen, ~ locally modified)
+        total 5
         
           spectacular-numbat_1/
           spectacular-numbat_2/
@@ -62,6 +66,7 @@ class IceboxListCommand:
 
         # validate icebox for path
         icebox = utils.FindIcebox(p)
+        print(icebox)
         if not icebox:
             raise IceboxError(
                 f"'{p}' is not in an icebox.")
@@ -71,19 +76,24 @@ class IceboxListCommand:
         relative_path = utils.GetRelativeRemotePath(str(p), icebox.path)
         folders, files = self.storage.List(icebox, relative_path)
         total_items = len(files) + len(folders)
-        print(f"{os.linesep}total {total_items}")
-        print(f"(* frozen, ~ locally modified){os.linesep}")
+        output = f"{os.linesep}{icebox.id}{os.linesep}"
+        output += f"total {total_items}{os.linesep}"
+        output += f"(* frozen, ~ locally modified){os.linesep}{os.linesep}"
         for folder in folders:
-            print(f"  {folder.name}")
+            output += f"  {folder.name}{os.linesep}"
         for file in files:
             marker = " "
             if file.is_frozen:
                 marker = "*"
             if file.is_modified:
                 marker = "~"
-            print(f"{marker} {file.name}")
+            output += f"{marker} {file.name}{os.linesep}"
+        output += os.linesep
+        return ListResult(
+            output=output, files=files, folders=folders,
+            is_remote=False, icebox=icebox)
 
-    def list_remote(self, path: str):
+    def list_remote(self, path: str) -> ListResult:
         """Print remote iceboxes.
 
         Print contents of the mentioned remote path. Print all iceboxes
@@ -100,8 +110,20 @@ class IceboxListCommand:
         
         folders, files = self.storage.ListRemote(path=path)
         total_items = len(files) + len(folders)
-        print(f"{os.linesep}total {total_items}{os.linesep}")
+        output = f"{os.linesep}total {total_items}{os.linesep}{os.linesep}"
         for folder in folders:
-            print(f"{folder.name}")
+            output += f"{folder.name}{os.linesep}"
         for file in files:
-            print(f"{file.name}")
+            output += f"{file.name}{os.linesep}"
+        output += os.linesep
+        return ListResult(
+            output=output, files=files, folders=folders,
+            is_remote=True, icebox=None)
+
+
+class ListResult(BaseModel):
+    output: str
+    files: List[Any] = []
+    folders: List[Any] = []
+    is_remote: bool = False
+    icebox: Icebox = None

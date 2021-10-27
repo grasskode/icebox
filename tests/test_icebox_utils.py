@@ -6,9 +6,10 @@ from pathlib import Path
 load_dotenv(dotenv_path=(Path('.') / '.env_test'))
 
 from .utils import TestUtils
+from app import config
 from app import commands
 from app import common
-from app import config
+from app.elements.icebox import IceboxError
 from app.storage import local_storage
 
 test_utils = TestUtils()

@@ -102,18 +102,16 @@ class LocalStorage(IceboxStorage):
         if not p.exists():
             raise IceboxStorageError("Path not found!")
         if p.is_file():
-            files.append(_from_path(str(p), p))
+            files.append(_remote_from_path(str(p), p))
         else:
             for child in p.iterdir():
                 child_path = os.path.relpath(
-                    str(child), str(self.storage_path))
+                    str(child), str(p))
                 if child.is_file():
-                    files.append(_from_path(child_path, child))
+                    if child_path != config.ICEBOX_FILE_NAME:
+                        files.append(_remote_from_path(child_path, child))
                 else:
-                    # check if child is an icebox
-                    icebox = utils.ReadIcebox(child)
-                    if icebox:
-                        folders.append(_from_path(child_path, child))
+                    folders.append(_remote_from_path(child_path, child))
         folders = sorted(folders, key=lambda x: x.name)
         files = sorted(files, key=lambda x: x.name)
         return folders, files
@@ -126,6 +124,8 @@ class LocalStorage(IceboxStorage):
 
         Returns a tuple of folders and files.
 
+        TODO: This is untested!
+
         Raises
             IceboxStorageError
         """
@@ -136,7 +136,7 @@ class LocalStorage(IceboxStorage):
 
         folders, files = [], []
         if path.is_file():
-            ilf = _from_path(path)
+            ilf = _local_from_path(str(path), path)
             if ilf:
                 if relpath in icebox.frozen_files:
                     ilf.is_frozen = True
@@ -148,7 +148,7 @@ class LocalStorage(IceboxStorage):
                 child_path = os.path.relpath(
                     str(child), str(icebox.path))
                 if child.is_file():
-                    ilf = _from_path(Path(child))
+                    ilf = _local_from_path(child_path, Path(child))
                     if ilf:
                         if child_path in icebox.frozen_files:
                             ilf.is_frozen = True
@@ -156,17 +156,29 @@ class LocalStorage(IceboxStorage):
                                 ilf.is_modified = True
                         files.append(ilf)
                 else:
-                    folders.append(_from_path(Path(child)))
+                    folders.append(_local_from_path(child_path, Path(child)))
         folders = sorted(folders, key=lambda x: x.name)
         files = sorted(files, key=lambda x: x.name)
         return folders, files
 
 
-def _from_path(name: str, path: Path) -> IceboxRemoteFile:
+def _remote_from_path(name: str, path: Path) -> IceboxRemoteFile:
     if path.is_dir():
         return IceboxRemoteFile(
             name=name, is_dir=True)
     else:
         return IceboxRemoteFile(
+            name=name, size=path.stat().st_size,
+            updated=datetime.fromtimestamp(path.stat().st_mtime))
+
+
+def _local_from_path(name: str, path: Path) -> IceboxLocalFile:
+    if path.is_dir():
+        return IceboxLocalFile(
+            name=name, is_dir=True)
+    else:
+        if name == config.ICEBOX_FILE_NAME:
+            return None
+        return IceboxLocalFile(
             name=name, size=path.stat().st_size,
             updated=datetime.fromtimestamp(path.stat().st_mtime))

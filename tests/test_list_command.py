@@ -1,4 +1,4 @@
-import os
+import shutil
 import unittest
 
 from dotenv import load_dotenv
@@ -6,8 +6,10 @@ from pathlib import Path
 load_dotenv(dotenv_path=(Path('.') / '.env_test'))
 
 from .utils import TestUtils
-from app import commands
 from app import common
+from app import commands
+from app.commands.list import ListResult
+from app.elements.icebox import IceboxError
 from app.storage import local_storage
 
 test_utils = TestUtils()
@@ -24,12 +26,24 @@ class ListCommandTest(unittest.TestCase):
 
     def setUp(self):
         # set up the directory structure
+        ## remote
+        self.test_folder_1 = test_utils.CreateTestFolder(
+            'folder_1')
+        self.test_subfolder_1 = test_utils.CreateTestFolder(
+            'subfolder_1', prefix=self.test_folder_1)
+        self.test_subfile_1 = test_utils.CreateTestFile(
+            'file1', prefix=self.test_subfolder_1)
+        self.test_folder_2 = test_utils.CreateTestFolder(
+            'folder_2')
+        self.test_folder_3 = test_utils.CreateTestFolder(
+            'folder_3')
+        ## local
         self.test_folder = test_utils.CreateTestFolder(
             'init_test')
-        self.test_subfolder = test_utils.CreateTestFolder(
-            'subfolder', prefix=self.test_folder)
         self.test_folder_file = test_utils.CreateTestFile(
             'thisisafile', prefix=self.test_folder)
+        self.test_subfolder = test_utils.CreateTestFolder(
+            'subfolder', prefix=self.test_folder)
         self.test_subfolder_file = test_utils.CreateTestFile(
             'thisisanotherfile', prefix=self.test_subfolder)
         self.test_subfolder_file_2 = test_utils.CreateTestFile(
@@ -42,86 +56,72 @@ class ListCommandTest(unittest.TestCase):
 
     def tearDown(self):
         # tear down the directory structure
+        test_utils.DeleteFolderAndContents(self.test_folder_1)
+        test_utils.DeleteFolderAndContents(self.test_folder_2)
+        test_utils.DeleteFolderAndContents(self.test_folder_3)
         test_utils.DeleteFolderAndContents(self.test_folder)
 
-    def test_list_args(self):
-        # list should raise error without parent or remote arguments
-        with self.assertRaises(IceboxError):
-            commands.IceboxListCommand(parent=None, remote=None).run()
-        with self.assertRaises(IceboxError):
-            commands.IceboxListCommand(
-                parent=str(self.test_folder), remote=None).run()
-        with self.assertRaises(IceboxError):
-            commands.IceboxListCommand(parent=None, remote='.').run()
+    def test_list_remote(self):
+        # clean init
+        ListCommandTest.storage.Destroy()
+        
+        # list_all should not return any iceboxes when there are none
+        # initialized
+        res: ListResult = commands.IceboxListCommand().list_remote(None)
+        self.assertTrue(res.is_remote)
+        self.assertEqual(len(res.folders), 0)
+        self.assertEqual(len(res.files), 0)
 
-        # list should work with remote_path argument
-        commands.IceboxInitCommand(str(self.test_folder)).run()
-        commands.IceboxFreezeCommand(str(self.test_folder)).run()
-        commands.IceboxListCommand(
-            parent=str(self.test_folder), remote='.').run()
+        # any initialized icebox should immediately reflect in list_all
+        commands.IceboxInitCommand(str(self.test_folder_1)).run()
+        res: ListResult = commands.IceboxListCommand().list_remote(None)
+        icebox_1 = common.utils.FindIcebox(self.test_folder_1)
+        self.assertEqual(len(res.folders), 1)
+        self.assertTrue(res.folders[0].name.startswith(icebox_1.id))
+        
+        # listing should return the correct number of files and folders
+        commands.IceboxInitCommand(str(self.test_folder_2)).run()
+        commands.IceboxInitCommand(str(self.test_folder_3)).run()
+        res: ListResult = commands.IceboxListCommand().list_remote(None)
+        self.assertEqual(len(res.folders), 3)
+        
+        # listing should work with a path
+        commands.IceboxFreezeCommand(str(self.test_folder_1)).run()
+        res: ListResult = commands.IceboxListCommand().list_remote(icebox_1.id)
+        self.assertEqual(len(res.folders), 1)
+        self.assertEqual(len(res.files), 0)
+        res: ListResult = commands.IceboxListCommand().list_remote(f"{icebox_1.id}/subfolder_1")
+        self.assertEqual(len(res.folders), 0)
+        self.assertEqual(len(res.files), 1)
+        
+        # list_all should show an icebox even if it is deleted locally
+        shutil.rmtree(self.test_folder_1)
+        self.assertFalse(self.test_folder_1.exists())
+        res: ListResult = commands.IceboxListCommand().list_remote(None)
+        self.assertEqual(len(res.folders), 3)
+        self.assertIn(f"{icebox_1.id}", [x.name for x in res.folders])
 
-        # list should work with recursive argument
-        commands.IceboxListCommand(
-            parent=str(self.test_folder), remote='.', recursive=True).run()
+    def test_local(self):
+        # clean init
+        ListCommandTest.storage.Destroy()
 
-    def test_list_path_initialized(self):
         # list should raise error for uninitialized folder
         with self.assertRaises(IceboxError):
-            commands.IceboxListCommand(
-                parent=str(self.test_folder), remote='.').run()
+            commands.IceboxListCommand().list_local(str(self.test_folder))
 
         # list should not raise error if the path is not frozen
         commands.IceboxInitCommand(str(self.test_folder)).run()
-        commands.IceboxListCommand(
-            parent=str(self.test_folder), remote='.').run()
+        commands.IceboxListCommand().list_local(str(self.test_folder))
 
-        # list should work if remote path exists
-        commands.IceboxFreezeCommand(str(self.test_folder)).run()
-        commands.IceboxListCommand(
-            parent=str(self.test_folder), remote='.').run()
-        commands.IceboxListCommand(
-            parent=str(self.test_folder), remote='.', recursive=True).run()
-
-    def test_list_output(self):
-        # listing should return all frozen files in given remote path
-        commands.IceboxInitCommand(str(self.test_folder)).run()
         commands.IceboxFreezeCommand(str(self.test_folder)).run()
         icebox = common.utils.FindIcebox(self.test_folder)
-        # we will need to test the storage's listing here since the command
-        # does not return anything but prints out
-        dirs, files = ListCommandTest.storage.List(
-            icebox, common.utils.GetRelativeRemotePath(
-                self.test_folder, icebox.path))
-        self.assertTrue(len(dirs), 1)
-        self.assertEqual(dirs[0].name,  self.test_subfolder.name)
-        self.assertTrue(len(files), 1)
-        self.assertEqual(files[0].name, self.test_folder_file.name)
+        
+        # list should work if remote path exists
+        commands.IceboxListCommand().list_local(str(self.test_folder))
 
-        # listing recursively should return all frozen paths relative to given
-        # remote path
-        dirs, files = ListCommandTest.storage.List(
-            icebox, common.utils.GetRelativeRemotePath(
-                self.test_folder, icebox.path), recursive=True)
-        self.assertTrue(len(files), 3)
-        self.assertEqual(
-            files[1].name,
-            self.test_subfolder.name+os.sep+self.test_subfolder_file.name)
-
-        # thawed paths should not be removed from listed files
-        commands.IceboxThawCommand(str(self.test_subfolder_file)).run()
-        dirs, files = ListCommandTest.storage.List(
-            icebox, common.utils.GetRelativeRemotePath(
-                self.test_subfolder, icebox.path))
-        self.assertTrue(len(files), 1)
-        self.assertTrue(
-            self.test_subfolder.name+os.sep+self.test_subfolder_file.name
-            in [f.name for f in files])
-
-        # empty directories should not be listed
-        commands.IceboxThawCommand(str(self.test_subfolder_file_2)).run()
-        dirs, files = ListCommandTest.storage.List(
-            icebox, common.utils.GetRelativeRemotePath(
-                self.test_folder, icebox.path))
-        self.assertTrue(len(dirs), 0)
-        self.assertFalse([f for f in files
-                         if f.name.startswith(self.test_subfolder.name)])
+        # listing should return all frozen files in given remote path
+        res: ListResult = commands.IceboxListCommand().list_local(str(self.test_folder))
+        self.assertTrue(len(res.folders), 1)
+        self.assertEqual(res.folders[0].name,  self.test_subfolder.name)
+        self.assertTrue(len(res.files), 1)
+        self.assertEqual(res.files[0].name, self.test_folder_file.name)
