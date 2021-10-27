@@ -1,5 +1,4 @@
 import argparse
-import os
 import sys
 import textwrap
 import traceback
@@ -115,20 +114,16 @@ def thaw(args):
 def list(args):
     parser = argparse.ArgumentParser(
         description='Parse arguments for list command.')
-    parser.add_argument('remote', type=str,
-                        help='remote path to list.', default='.')
-    parser.add_argument('-r', dest='recursive', action='store_true',
-                        help='List files recursively.')
-    parser.add_argument('-a', dest='all', action='store_true',
-                        help='List all remote iceboxes.')
+    parser.add_argument(
+        'path', type=str, nargs='?', default=None,
+        help='path to list.')
+    parser.add_argument(
+        '-a', '--remote', dest='remote', action='store_true',
+        help='list remote iceboxes.')
     parsed_args = parser.parse_args(args)
     try:
-        if parsed_args.all:
-            commands.IceboxListAllCommand().run()
-        else:
-            commands.IceboxListCommand(
-                parent=os.getcwd(), remote=parsed_args.remote,
-                recursive=parsed_args.recursive).run()
+        commands.IceboxListCommand().run(
+            path=parsed_args.path, remote=parsed_args.remote)
     except IceboxError as e:
         print(e)
     except Exception:

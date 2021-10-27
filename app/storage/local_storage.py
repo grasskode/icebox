@@ -10,7 +10,7 @@ from .icebox_storage import IceboxStorageError
 from app import config
 from app.common import utils
 from app.elements.icebox import Icebox
-from app.elements.icebox_remote_file import IceboxRemoteFile
+from app.elements.icebox_files import IceboxLocalFile, IceboxRemoteFile
 
 
 class LocalStorage(IceboxStorage):
@@ -22,63 +22,6 @@ class LocalStorage(IceboxStorage):
     def __init__(self, path: str):
         self.storage_path = Path(path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
-
-    def ListAll(self) -> typing.List[str]:
-        """List the remote iceboxes.
-
-        Returns a list remote icebox IDs.
-
-        Overrides the default unimplemented method in IceboxStorage.
-
-        Raises
-            IceboxStorageError
-        """
-        iceboxes = []
-        for child in self.storage_path.iterdir():
-            # check if child is an icebox
-            icebox = utils.ReadIcebox(child)
-            if icebox:
-                iceboxes.append(icebox)
-        return sorted(iceboxes, key=lambda x: x.id)
-
-    def List(self, icebox: Icebox, remote_path: str,
-             recursive: bool = False) -> typing.Tuple[
-             typing.List[IceboxRemoteFile], typing.List[IceboxRemoteFile]]:
-        """List the objects in the given icebox withthe given remote path.
-
-        Returns a tuple of directories and files.
-
-        Overrides the default unimplemented method in IceboxStorage.
-        """
-        dirs, files = [], []
-        path = self.storage_path / Path(icebox.id) / Path(remote_path)
-
-        # get all the immediate children of the remote path
-        for child in path.iterdir():
-            if child.name == config.ICEBOX_FILE_NAME:
-                continue
-            child_path = os.path.relpath(
-                str(child), str(self.storage_path / Path(icebox.id)))
-            if child.is_dir():
-                dirs.append(
-                    IceboxRemoteFile(name=child_path, is_dir=True))
-            else:
-                updated = datetime.fromtimestamp(child.stat().st_mtime)
-                files.append(
-                    IceboxRemoteFile(
-                        name=child_path, size=child.stat().st_size,
-                        updated=updated))
-        dirs.sort(key=lambda x: x.name)
-        files.sort(key=lambda x: x.name)
-        # if recursive and directories were found, list all of them and add
-        # result to the return set
-        if dirs and recursive:
-            dirs_to_recurse = list(dirs)
-            for dir in dirs_to_recurse:
-                _dirs, _files = self.List(icebox, dir.name, recursive=True)
-                dirs.extend(_dirs)
-                files.extend(_files)
-        return dirs, files
 
     def Upload(self, source_path: str, relative_destination_path: str):
         """Upload the source_path to the relative_destination_path.
@@ -137,3 +80,105 @@ class LocalStorage(IceboxStorage):
         Utility function.
         """
         shutil.rmtree(self.storage_path)
+
+    def ListRemote(
+            self, path: typing.Optional[str] = None
+    ) -> typing.Tuple[
+            typing.List[IceboxRemoteFile], typing.List[IceboxRemoteFile]]:
+        """List the remote iceboxes.
+
+        If a remote path is provides, it lists the given path in the remote
+        storage.
+
+        Returns a tuple and folder and file.
+
+        Raises
+            IceboxStorageError
+        """
+        folders, files = [], []
+        p = self.storage_path
+        if path:
+            p = self.storage_path / Path(path)
+        if not p.exists():
+            raise IceboxStorageError("Path not found!")
+        if p.is_file():
+            files.append(_remote_from_path(str(p), p))
+        else:
+            for child in p.iterdir():
+                child_path = os.path.relpath(
+                    str(child), str(p))
+                if child.is_file():
+                    if child_path != config.ICEBOX_FILE_NAME:
+                        files.append(_remote_from_path(child_path, child))
+                else:
+                    folders.append(_remote_from_path(child_path, child))
+        folders = sorted(folders, key=lambda x: x.name)
+        files = sorted(files, key=lambda x: x.name)
+        return folders, files
+
+    def List(
+            self, icebox: Icebox, relpath: str
+    ) -> typing.Tuple[
+            typing.List[IceboxLocalFile], typing.List[IceboxLocalFile]]:
+        """List the objects in the given icebox path.
+
+        Returns a tuple of folders and files.
+
+        TODO: This is untested!
+
+        Raises
+            IceboxStorageError
+        """
+
+        path = (Path(icebox.path) / Path(relpath)).resolve()
+        if not path.exists():
+            raise IceboxStorageError(f"'{str(path)}' does not exist.")
+
+        folders, files = [], []
+        if path.is_file():
+            ilf = _local_from_path(str(path), path)
+            if ilf:
+                if relpath in icebox.frozen_files:
+                    ilf.is_frozen = True
+                    if ilf.size > 0:
+                        ilf.is_modified = True
+                files.append(ilf)
+        else:
+            for child in path.iterdir():
+                child_path = os.path.relpath(
+                    str(child), str(icebox.path))
+                if child.is_file():
+                    ilf = _local_from_path(child_path, Path(child))
+                    if ilf:
+                        if child_path in icebox.frozen_files:
+                            ilf.is_frozen = True
+                            if ilf.size > 0:
+                                ilf.is_modified = True
+                        files.append(ilf)
+                else:
+                    folders.append(_local_from_path(child_path, Path(child)))
+        folders = sorted(folders, key=lambda x: x.name)
+        files = sorted(files, key=lambda x: x.name)
+        return folders, files
+
+
+def _remote_from_path(name: str, path: Path) -> IceboxRemoteFile:
+    if path.is_dir():
+        return IceboxRemoteFile(
+            name=name, is_dir=True)
+    else:
+        return IceboxRemoteFile(
+            name=name, size=path.stat().st_size,
+            updated=datetime.fromtimestamp(path.stat().st_mtime))
+
+
+def _local_from_path(name: str, path: Path) -> IceboxLocalFile:
+    if path.is_dir():
+        return IceboxLocalFile(
+            name=name, is_dir=True)
+    else:
+        if name == config.ICEBOX_FILE_NAME:
+            return None
+        return IceboxLocalFile(
+            name=name, size=path.stat().st_size,
+            updated=datetime.fromtimestamp(path.stat().st_mtime))

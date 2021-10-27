@@ -78,6 +78,26 @@ python icebox.py thaw <path>
 
 > A locally overwritten frozen file cannot be thawed. The remote contents remain intact till the file is refrozen.
 
+### List
+
+You can list an icebox (remote or local). This allows you to check the contents of an icebox and navigate through it without necessarily cloning it.
+
+To list remote iceboxes use the flag `-a` or `--remote`.
+```bash
+python icebox.py ls <path>
+```
+
+Without a path, this lists all the iceboxes in the configured storage. You can choose one to dig further. The path expects a folder-like pattern which should represent one complete directory structure in the icebox hierarchy.
+```bash
+python icebox.py ls <path>
+```
+
+Without the flag, the list command looks for the path locally (absolute or relative). Local listing provides additional information to the current status of the icebox.
+
+* `*` represents a frozen file
+* `~` represents a file that was modified locally after the freeze.
+* no marker means that the file is either thawed or does not exist in the icebox.
+
 
 ## Configure Storage
 
