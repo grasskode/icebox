@@ -244,3 +244,27 @@ def DownloadFile(
         icebox.path)
     remote_path = f"{icebox.id}{config.REMOTE_PATH_DELIMITER}{relative_path}"
     storage.Download(remote_path, filepath)
+
+def CloneIcebox(icebox_name: str, dest: Path, storage=None):
+    if not storage:
+        storage = GetStorage()
+    dest.resolve()
+    if not dest.exists():
+        raise IceboxError("Missing closing destination.")
+    
+    # download .icebox file
+    remote_path = (
+        f"{icebox_name}{config.REMOTE_PATH_DELIMITER}{config.ICEBOX_FILE_NAME}")
+    local_path = dest / Path(config.ICEBOX_FILE_NAME)
+    storage.Download(remote_path, str(local_path))
+
+    # check icenox
+    icebox = FindIcebox(dest)
+    if not icebox:
+        raise IceboxError("Failed to find a valid icebox in remote.")
+
+    # create local previews of frozen files.
+    for f in icebox.frozen_files:
+        filepath = dest / Path(f)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        ReplaceFile(str(filepath))

@@ -16,15 +16,17 @@ from app.storage.icebox_storage import IceboxStorageError
 
 
 class IceboxListCommand:
-    def __init__(self):
+    def __init__(self, path: str = None, remote: bool = False):
+        self.path = path
+        self.remote = remote
         self.storage: IceboxStorage = utils.GetStorage()
 
-    def run(self, path: str, remote: bool):
+    def run(self):
         try:
-            if remote:
-                result = self.list_remote(path)
+            if self.remote:
+                result = self.list_remote()
             else:
-                result =self.list_local(path)
+                result =self.list_local()
             print(result.output)
             
             # TODO: alternate formatting option
@@ -41,7 +43,7 @@ class IceboxListCommand:
                 f"Unable to list path! Check stack trace for "
                 "error.")
 
-    def list_local(self, path: str) -> ListResult:
+    def list_local(self) -> ListResult:
         """List files assuming the path to be local.
         
         icebox_name
@@ -56,17 +58,16 @@ class IceboxListCommand:
         """
         # check if path is absolute or relative
         p = Path(os.getcwd())
-        if path:
-            p = Path(path).resolve()
+        if self.path:
+            p = Path(self.path).resolve()
             if not p.exists():
                 p = (Path(os.getcwd()) / p).resolve()
             if not p.exists():
                 raise IceboxError(
-                    f"{path} not found locally.")
+                    f"{self.path} not found locally.")
 
         # validate icebox for path
         icebox = utils.FindIcebox(p)
-        print(icebox)
         if not icebox:
             raise IceboxError(
                 f"'{p}' is not in an icebox.")
@@ -93,7 +94,7 @@ class IceboxListCommand:
             output=output, files=files, folders=folders,
             is_remote=False, icebox=icebox)
 
-    def list_remote(self, path: str) -> ListResult:
+    def list_remote(self) -> ListResult:
         """Print remote iceboxes.
 
         Print contents of the mentioned remote path. Print all iceboxes
@@ -108,7 +109,7 @@ class IceboxListCommand:
         spectacular_file_3
         """
         
-        folders, files = self.storage.ListRemote(path=path)
+        folders, files = self.storage.ListRemote(path=self.path)
         total_items = len(files) + len(folders)
         output = f"{os.linesep}total {total_items}{os.linesep}{os.linesep}"
         for folder in folders:

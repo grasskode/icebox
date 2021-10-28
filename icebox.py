@@ -18,8 +18,9 @@ These are the common icebox commands:
     init        Initialize a directory as an icebox.
                 The path must be a folder.
                 usage: init <path>
-    clone       Clone an icebox from an existing one.
-                The path must not exist.
+    clone       Clone an existing icebox to a local path.
+                Does not download the frozen files by default. The path must
+                not exist.
                 usage: init <icebox> <path>
     freeze      Archive a given path.
                 The path can be a file or folder. All files within a folder are
@@ -29,12 +30,14 @@ These are the common icebox commands:
                 The path can be a file or folder. All files within a folder are
                 recursively unarchived.
                 usage: thaw <path>
-    ls          List the contents of an icebox.
-                The command can be run from an initialized icebox folder.
+    ls          List the contents of an icebox (local or remote).
+                * Local paths must be inside an initialized icebox. Omitting
+                  the path resolves to the current working directory.
+                * Remote paths should exist. Omitting the path lists all
+                  available iceboxes.
                 Options:
-                    -r : Lists files recursively.
-                    -a : Lists all remote iceboxes.
-                usage: ls [remote]
+                    -a / --remote : List remote iceboxes.
+                usage: ls [options] [path]
 ''')
 
 
@@ -122,8 +125,8 @@ def list(args):
         help='list remote iceboxes.')
     parsed_args = parser.parse_args(args)
     try:
-        commands.IceboxListCommand().run(
-            path=parsed_args.path, remote=parsed_args.remote)
+        commands.IceboxListCommand(
+            path=parsed_args.path, remote=parsed_args.remote).run()
     except IceboxError as e:
         print(e)
     except Exception:

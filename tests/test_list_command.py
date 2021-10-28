@@ -67,14 +67,16 @@ class ListCommandTest(unittest.TestCase):
         
         # list_all should not return any iceboxes when there are none
         # initialized
-        res: ListResult = commands.IceboxListCommand().list_remote(None)
+        res: ListResult = commands.IceboxListCommand(
+            path=None, remote=True).list_remote()
         self.assertTrue(res.is_remote)
         self.assertEqual(len(res.folders), 0)
         self.assertEqual(len(res.files), 0)
 
         # any initialized icebox should immediately reflect in list_all
         commands.IceboxInitCommand(str(self.test_folder_1)).run()
-        res: ListResult = commands.IceboxListCommand().list_remote(None)
+        res: ListResult = commands.IceboxListCommand(
+            path=None, remote=True).list_remote()
         icebox_1 = common.utils.FindIcebox(self.test_folder_1)
         self.assertEqual(len(res.folders), 1)
         self.assertTrue(res.folders[0].name.startswith(icebox_1.id))
@@ -82,22 +84,26 @@ class ListCommandTest(unittest.TestCase):
         # listing should return the correct number of files and folders
         commands.IceboxInitCommand(str(self.test_folder_2)).run()
         commands.IceboxInitCommand(str(self.test_folder_3)).run()
-        res: ListResult = commands.IceboxListCommand().list_remote(None)
+        res: ListResult = commands.IceboxListCommand(
+            path=None, remote=True).list_remote()
         self.assertEqual(len(res.folders), 3)
         
         # listing should work with a path
         commands.IceboxFreezeCommand(str(self.test_folder_1)).run()
-        res: ListResult = commands.IceboxListCommand().list_remote(icebox_1.id)
+        res: ListResult = commands.IceboxListCommand(
+            path=icebox_1.id, remote=True).list_remote()
         self.assertEqual(len(res.folders), 1)
         self.assertEqual(len(res.files), 0)
-        res: ListResult = commands.IceboxListCommand().list_remote(f"{icebox_1.id}/subfolder_1")
+        res: ListResult = commands.IceboxListCommand(
+            path=f"{icebox_1.id}/subfolder_1", remote=True).list_remote()
         self.assertEqual(len(res.folders), 0)
         self.assertEqual(len(res.files), 1)
         
         # list_all should show an icebox even if it is deleted locally
         shutil.rmtree(self.test_folder_1)
         self.assertFalse(self.test_folder_1.exists())
-        res: ListResult = commands.IceboxListCommand().list_remote(None)
+        res: ListResult = commands.IceboxListCommand(
+            path=None, remote=True).list_remote()
         self.assertEqual(len(res.folders), 3)
         self.assertIn(f"{icebox_1.id}", [x.name for x in res.folders])
 
@@ -107,20 +113,24 @@ class ListCommandTest(unittest.TestCase):
 
         # list should raise error for uninitialized folder
         with self.assertRaises(IceboxError):
-            commands.IceboxListCommand().list_local(str(self.test_folder))
+            commands.IceboxListCommand(
+                path=str(self.test_folder), remote=False).list_local()
 
         # list should not raise error if the path is not frozen
         commands.IceboxInitCommand(str(self.test_folder)).run()
-        commands.IceboxListCommand().list_local(str(self.test_folder))
+        commands.IceboxListCommand(
+            path=str(self.test_folder), remote=False).list_local()
 
         commands.IceboxFreezeCommand(str(self.test_folder)).run()
         icebox = common.utils.FindIcebox(self.test_folder)
         
         # list should work if remote path exists
-        commands.IceboxListCommand().list_local(str(self.test_folder))
+        commands.IceboxListCommand(
+            path=str(self.test_folder), remote=False).list_local()
 
         # listing should return all frozen files in given remote path
-        res: ListResult = commands.IceboxListCommand().list_local(str(self.test_folder))
+        res: ListResult = commands.IceboxListCommand(
+            path=str(self.test_folder), remote=False).list_local()
         self.assertTrue(len(res.folders), 1)
         self.assertEqual(res.folders[0].name,  self.test_subfolder.name)
         self.assertTrue(len(res.files), 1)
