@@ -40,7 +40,10 @@ Enter the name of the bucket to be used.
 ```
 Enter a unique bucket name or map to an existing one. Leave blank to use auto generated name (something-utterly-random-here):
 ```
-Note that icebox buckets need to start with the `icebox_` prefix. In case you wish to create a bucket separately and use it for icebox, please ensure that it begins with the prefix. You can use either the full name of the bucket or the name following the `icebox_` prefix. Your existing storage buckets can be found in your [Cloud Storage Browser](https://console.cloud.google.com/storage/browser).
+
+Icebox buckets need to start with the `icebox_` prefix. In case you wish to create a bucket and then use it for icebox, please ensure that it begins with the prefix. You can use either the full name of the bucket or the name following the `icebox_` prefix. Your existing storage buckets can be found in your [Cloud Storage Browser](https://console.cloud.google.com/storage/browser).
+
+> :warning: Once you have configured the bucket, ensure that `Requester pays` is disabled on the bucket.
 
 ## Workflows
 
@@ -54,7 +57,22 @@ python icebox.py init <path>
 
 Icebox adds a unique ID to the initialized directory and creates an entry in the configured remote. You can check the details in the file created at `<path>/.icebox`.
 
-Along with [clone](TODO), `init` is the first step in any workflow for using icebox.
+Along with [`clone`](#workflow_clone), `init` is the first step in any workflow for using icebox.
+
+### Clone<a name="workflow_clone"></a>
+
+You can clone an existing icebox to an empty path on your local filesystem. This replicates the icebox but does not download the content. All the frozen files are restored as previews in the cloned destination.
+
+```bash
+python icebox.py clone <icebox> <path>
+```
+
+To check the available iceboxes, you can use the [`list`](#workflow_list) command.
+```bash
+python icebox.py ls -a
+```
+
+> :warning: An icebox cannot be cloned inside an existing icebox (cloned or locally initialized).
 
 ### Freeze<a name="workflow_freeze"></a>
 
@@ -65,7 +83,7 @@ To freeze, use the following command.
 python icebox.py freeze <path>
 ```
 
-> A locally overwritten frozen file can be refrozen. This will replace the remote contents with the overwritten data.
+> :warning: A locally overwritten frozen file can be refrozen. This will replace the remote contents with the overwritten data.
 
 ### Thaw
 
@@ -76,9 +94,9 @@ To thaw, use the following command.
 python icebox.py thaw <path>
 ```
 
-> A locally overwritten frozen file cannot be thawed. The remote contents remain intact till the file is refrozen.
+> :warning: A locally overwritten frozen file cannot be thawed. The remote contents remain intact till the file is refrozen.
 
-### List
+### List<a name="workflow_list"></a>
 
 You can list an icebox (remote or local). This allows you to check the contents of an icebox and navigate through it without necessarily cloning it.
 
@@ -110,16 +128,17 @@ To use the `Google Cloud Storage` as the backup for icebox, we'll need to set up
 2. [Enable billing for the project.](https://cloud.google.com/billing/docs/how-to/modify-project#enable_billing_for_a_project)
 
 3. [Create a role in the project.](https://cloud.google.com/iam/docs/creating-custom-roles) Assign the following permissions to the role.
-  * serviceusage.services.use
-  * storage.buckets.create
-  * storage.buckets.get
-  * storage.buckets.list
-  * storage.objects.create
-  * storage.objects.delete
-  * storage.objects.get
-  * storage.objects.list
-  * storage.objects.update
-
+```
+  serviceusage.services.use
+  storage.buckets.create
+  storage.buckets.get
+  storage.buckets.list
+  storage.objects.create
+  storage.objects.delete
+  storage.objects.get
+  storage.objects.list
+  storage.objects.update
+```
 
 4. [Create a service account in the project.](https://cloud.google.com/iam/docs/creating-managing-service-accounts) Assign the role created in step 3 to this service account.
 

@@ -164,6 +164,8 @@ class LocalStorage(IceboxStorage):
 
 def _remote_from_path(name: str, path: Path) -> IceboxRemoteFile:
     if path.is_dir():
+        if not name.endswith(config.REMOTE_PATH_DELIMITER):
+            name = f"{name}{config.REMOTE_PATH_DELIMITER}"
         return IceboxRemoteFile(
             name=name, is_dir=True)
     else:
@@ -174,6 +176,8 @@ def _remote_from_path(name: str, path: Path) -> IceboxRemoteFile:
 
 def _local_from_path(name: str, path: Path) -> IceboxLocalFile:
     if path.is_dir():
+        if not name.endswith(config.REMOTE_PATH_DELIMITER):
+            name = f"{name}{config.REMOTE_PATH_DELIMITER}"
         return IceboxLocalFile(
             name=name, is_dir=True)
     else:
