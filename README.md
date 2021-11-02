@@ -40,7 +40,10 @@ Enter the name of the bucket to be used.
 ```
 Enter a unique bucket name or map to an existing one. Leave blank to use auto generated name (something-utterly-random-here):
 ```
-Note that icebox buckets need to start with the `icebox_` prefix. In case you wish to create a bucket separately and use it for icebox, please ensure that it begins with the prefix. You can use either the full name of the bucket or the name following the `icebox_` prefix. Your existing storage buckets can be found in your [Cloud Storage Browser](https://console.cloud.google.com/storage/browser).
+
+Icebox buckets need to start with the `icebox_` prefix. In case you wish to create a bucket and then use it for icebox, please ensure that it begins with the prefix. You can use either the full name of the bucket or the name following the `icebox_` prefix. Your existing storage buckets can be found in your [Cloud Storage Browser](https://console.cloud.google.com/storage/browser).
+
+> :warning: Once you have configured the bucket, ensure that `Requester pays` is disabled on the bucket.
 
 ## Workflows
 
@@ -125,16 +128,17 @@ To use the `Google Cloud Storage` as the backup for icebox, we'll need to set up
 2. [Enable billing for the project.](https://cloud.google.com/billing/docs/how-to/modify-project#enable_billing_for_a_project)
 
 3. [Create a role in the project.](https://cloud.google.com/iam/docs/creating-custom-roles) Assign the following permissions to the role.
-  * serviceusage.services.use
-  * storage.buckets.create
-  * storage.buckets.get
-  * storage.buckets.list
-  * storage.objects.create
-  * storage.objects.delete
-  * storage.objects.get
-  * storage.objects.list
-  * storage.objects.update
-
+```
+  serviceusage.services.use
+  storage.buckets.create
+  storage.buckets.get
+  storage.buckets.list
+  storage.objects.create
+  storage.objects.delete
+  storage.objects.get
+  storage.objects.list
+  storage.objects.update
+```
 
 4. [Create a service account in the project.](https://cloud.google.com/iam/docs/creating-managing-service-accounts) Assign the role created in step 3 to this service account.
 
