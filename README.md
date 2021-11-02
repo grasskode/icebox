@@ -54,7 +54,22 @@ python icebox.py init <path>
 
 Icebox adds a unique ID to the initialized directory and creates an entry in the configured remote. You can check the details in the file created at `<path>/.icebox`.
 
-Along with [clone](TODO), `init` is the first step in any workflow for using icebox.
+Along with [`clone`](#workflow_clone), `init` is the first step in any workflow for using icebox.
+
+### Clone<a name="workflow_clone"></a>
+
+You can clone an existing icebox to an empty path on your local filesystem. This replicates the icebox but does not download the content. All the frozen files are restored as previews in the cloned destination.
+
+```bash
+python icebox.py clone <icebox> <path>
+```
+
+To check the available iceboxes, you can use the [`list`](#workflow_list) command.
+```bash
+python icebox.py ls -a
+```
+
+> :warning: An icebox cannot be cloned inside an existing icebox (cloned or locally initialized).
 
 ### Freeze<a name="workflow_freeze"></a>
 
@@ -65,7 +80,7 @@ To freeze, use the following command.
 python icebox.py freeze <path>
 ```
 
-> A locally overwritten frozen file can be refrozen. This will replace the remote contents with the overwritten data.
+> :warning: A locally overwritten frozen file can be refrozen. This will replace the remote contents with the overwritten data.
 
 ### Thaw
 
@@ -76,9 +91,9 @@ To thaw, use the following command.
 python icebox.py thaw <path>
 ```
 
-> A locally overwritten frozen file cannot be thawed. The remote contents remain intact till the file is refrozen.
+> :warning: A locally overwritten frozen file cannot be thawed. The remote contents remain intact till the file is refrozen.
 
-### List
+### List<a name="workflow_list"></a>
 
 You can list an icebox (remote or local). This allows you to check the contents of an icebox and navigate through it without necessarily cloning it.
 

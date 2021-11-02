@@ -14,13 +14,14 @@ class IceboxCloneCommand:
 
     def run(self) -> None:
         # ensure that the icebox exists
+        if not self.icebox:
+            raise IceboxError("Icebox name required.")
         folders, _ = self.storage.ListRemote()
-        icebox_name = self.icebox
-        if not icebox_name.endswith(config.REMOTE_PATH_DELIMITER):
-            icebox_name = f"{icebox_name}{config.REMOTE_PATH_DELIMITER}"
+        if not self.icebox.endswith(config.REMOTE_PATH_DELIMITER):
+            self.icebox = f"{self.icebox}{config.REMOTE_PATH_DELIMITER}"
         exists = False
         for f in folders:
-            if f.name == icebox_name:
+            if f.name == self.icebox:
                 exists = True
                 break
         if not exists:
