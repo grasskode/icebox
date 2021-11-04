@@ -105,7 +105,7 @@ class ListCommandTest(unittest.TestCase):
         res: ListResult = commands.IceboxListCommand(
             path=None, remote=True).list_remote()
         self.assertEqual(len(res.folders), 3)
-        self.assertIn(f"{icebox_1.id}", [x.name for x in res.folders])
+        self.assertIn(f"{icebox_1.id}/", [x.name for x in res.folders])
 
     def test_local(self):
         # clean init
@@ -132,6 +132,6 @@ class ListCommandTest(unittest.TestCase):
         res: ListResult = commands.IceboxListCommand(
             path=str(self.test_folder), remote=False).list_local()
         self.assertTrue(len(res.folders), 1)
-        self.assertEqual(res.folders[0].name,  self.test_subfolder.name)
+        self.assertEqual(res.folders[0].name,  f"{self.test_subfolder.name}/")
         self.assertTrue(len(res.files), 1)
         self.assertEqual(res.files[0].name, self.test_folder_file.name)
