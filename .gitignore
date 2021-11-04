@@ -12,3 +12,8 @@ test_data/
 env/
 venv/
 ENV/
+
+# pyinstaller
+*.spec
+build/
+dist/
