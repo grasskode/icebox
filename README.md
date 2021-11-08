@@ -2,21 +2,30 @@
 
 ## Installation
 
-### Pypi dependencies
+You will need [python3.9](https://www.python.org/downloads/release/python-398/) with [pypi](https://pypi.org/) and [virtualenv](https://virtualenv.pypa.io/en/latest/) (recommended).
 
+Install pypi dependencies.
 ``` bash
 pip install -r requirements.txt
 ```
+
+Use the following command to install the binary to `/usr/local/bin`
+```bash
+make
+```
+This runs all the tests, builds a binary into the folder `dist`, moves it to `/usr/local/bin` and cleans up the build folders and files.
+
+Run `icebox ls -a` to confirm installation.
 
 ## Configuration
 
 As a prerequisite, you will need to configure your storage.
 1. [Google Cloud Storage](#configure_storage_gcp)
 
-Use the command `python icebox.py config` to configure your icebox.
+Use the command `icebox config` to configure your icebox.
 
 ```
-$ python icebox.py config
+$ icebox config
 Choose a cloud storage service provider:
 	[1] Google Cloud Storage (GCP)
 	[2] Amazon S3 (AWS)
@@ -52,7 +61,7 @@ Icebox buckets need to start with the `icebox_` prefix. In case you wish to crea
 Icebox can be used in any "initialized" folder. To initialize a folder, you need to use the following command.
 
 ```bash
-python icebox.py init <path>
+icebox init <path>
 ```
 
 Icebox adds a unique ID to the initialized directory and creates an entry in the configured remote. You can check the details in the file created at `<path>/.icebox`.
@@ -64,12 +73,12 @@ Along with [`clone`](#workflow_clone), `init` is the first step in any workflow 
 You can clone an existing icebox to an empty path on your local filesystem. This replicates the icebox but does not download the content. All the frozen files are restored as previews in the cloned destination.
 
 ```bash
-python icebox.py clone <icebox> <path>
+icebox clone <icebox> <path>
 ```
 
 To check the available iceboxes, you can use the [`list`](#workflow_list) command.
 ```bash
-python icebox.py ls -a
+icebox ls -a
 ```
 
 > :warning: An icebox cannot be cloned inside an existing icebox (cloned or locally initialized).
@@ -80,7 +89,7 @@ You can freeze files or folders inside an [initialized icebox](#workflow_init). 
 
 To freeze, use the following command.
 ```bash
-python icebox.py freeze <path>
+icebox freeze <path>
 ```
 
 > :warning: A locally overwritten frozen file can be refrozen. This will replace the remote contents with the overwritten data.
@@ -91,7 +100,7 @@ A [frozen file](#workflow_freeze) or folder can be thawed. This command restores
 
 To thaw, use the following command.
 ```bash
-python icebox.py thaw <path>
+icebox thaw <path>
 ```
 
 > :warning: A locally overwritten frozen file cannot be thawed. The remote contents remain intact till the file is refrozen.
@@ -102,12 +111,12 @@ You can list an icebox (remote or local). This allows you to check the contents 
 
 To list remote iceboxes use the flag `-a` or `--remote`.
 ```bash
-python icebox.py ls <path>
+icebox ls <path>
 ```
 
 Without a path, this lists all the iceboxes in the configured storage. You can choose one to dig further. The path expects a folder-like pattern which should represent one complete directory structure in the icebox hierarchy.
 ```bash
-python icebox.py ls <path>
+icebox ls <path>
 ```
 
 Without the flag, the list command looks for the path locally (absolute or relative). Local listing provides additional information to the current status of the icebox.
